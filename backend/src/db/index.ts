@@ -15,6 +15,9 @@ export const sql = postgres(connectionString, {
 
 export const db = drizzle(sql, { schema })
 
+// Each tagged query below is sent as a single prepared statement, so a statement
+// must never be combined with another in one template literal — postgres.js rejects
+// that with "cannot insert multiple commands into a prepared statement".
 export async function ensureTablesExist() {
   await sql`
     CREATE TABLE IF NOT EXISTS tables (
@@ -35,6 +38,9 @@ export async function ensureTablesExist() {
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `
+
+  await sql`
     CREATE INDEX IF NOT EXISTS columns_table_id_idx ON columns(table_id);
   `
 
@@ -47,6 +53,9 @@ export async function ensureTablesExist() {
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `
+
+  await sql`
     CREATE INDEX IF NOT EXISTS participants_table_id_idx ON participants(table_id);
   `
 
@@ -59,7 +68,13 @@ export async function ensureTablesExist() {
       value TEXT NOT NULL DEFAULT '',
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `
+
+  await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS scores_participant_column_unique_idx ON scores(participant_id, column_id);
+  `
+
+  await sql`
     CREATE INDEX IF NOT EXISTS scores_table_id_idx ON scores(table_id);
   `
 }
