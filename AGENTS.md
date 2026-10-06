@@ -1,5 +1,9 @@
 # Tablora (Таблора) — Agent Instructions
 
+> **This repository is public.** Operational details — hostnames, IP addresses, ports,
+> container IDs, deployment runbooks — do not belong in it; they live outside the repo.
+> The files under `deploy/` are generic templates and must stay generic.
+
 ## Project Overview
 
 Tablora (Таблора) is a real-time competition results table web application.
@@ -18,7 +22,8 @@ Tablora (Таблора) is a real-time competition results table web applicatio
 /
 ├── backend/            # Fastify 5 REST API + SSE (Drizzle ORM + PostgreSQL)
 ├── frontend/           # Next.js (App Router) + TypeScript + Tailwind + Feature-Sliced Design
-└── packages/shared/    # @tablora/shared — wire contract shared by backend and frontend
+├── packages/shared/    # @tablora/shared — wire contract shared by backend and frontend
+└── deploy/             # Production Docker Compose stack (see deploy/.env.example)
 ```
 
 npm workspaces (root `package.json`). npm package names stay `tablora-backend` / `tablora-frontend` — in scripts `-w` refers to the package name, not the directory path.
@@ -41,6 +46,7 @@ Rules:
 - Stack: Fastify 5, Drizzle ORM, `postgres` (postgres.js) driver, nanoid. ESM (`"type": "module"`).
 - Real-time via Server-Sent Events at `GET /api/tables/:id/events`.
 - Scripts: `npm run dev` (tsx watch), `npm run db:generate|db:push|db:migrate` (drizzle-kit), `npm test`.
+- Schema bootstrap lives in `src/db/ensureTablesExist()`. postgres.js sends every tagged query as a single prepared statement, so **never put two SQL commands in one `sql` template literal** — Postgres rejects it with `cannot insert multiple commands into a prepared statement`, and the caller only logs a warning, so a partial schema fails silently at runtime. Each statement needs its own `sql` call.
 
 ## Frontend
 
@@ -94,3 +100,15 @@ All commands run from the repository root. `-w` refers to the npm package name (
 - Build everything: `npm run build`.
 
 The frontend defaults to `NEXT_PUBLIC_API_URL=http://localhost:4000`, matching the backend port.
+
+## Production build
+
+Docker images are built from the **repository root**, not from `backend/` or `frontend/` — both Dockerfiles need the `@tablora/shared` workspace:
+
+```sh
+docker compose -f deploy/docker-compose.yml up -d --build
+```
+
+- `NEXT_PUBLIC_API_URL` is baked into the frontend bundle at **build** time, not read at runtime. The build fails if it is empty. After changing the value you must rebuild the frontend image — restarting the container is not enough.
+- `frontend/next.config.ts` sets `output: "standalone"`, which `frontend/Dockerfile` relies on; don't remove it without adjusting the image.
+- `deploy/.env` is gitignored — start from `deploy/.env.example`.

@@ -34,6 +34,7 @@
 ├── packages/shared/    # @tablora/shared — wire-контракт, общий для backend и frontend
 ├── openspec/           # Артефакты spec-driven разработки
 ├── docker-compose.yml  # Локальный PostgreSQL
+├── deploy/             # Прод-стек Docker Compose (см. deploy/.env.example)
 └── AGENTS.md           # Инструкции для агентов
 ```
 
@@ -111,6 +112,7 @@ The repository is an **npm workspaces** monorepo (three packages; root `package.
 ├── packages/shared/    # @tablora/shared — wire contract shared by backend and frontend
 ├── openspec/           # Spec-driven development artifacts
 ├── docker-compose.yml  # Local PostgreSQL
+├── deploy/             # Production Docker Compose stack (see deploy/.env.example)
 └── AGENTS.md           # Agent instructions
 ```
 

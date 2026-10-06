@@ -1,0 +1,96 @@
+# Production stack for Tablora: PostgreSQL + API + web UI.
+#
+#   cp deploy/.env.example deploy/.env   # then fill in the values
+#   docker compose -f deploy/docker-compose.yml up -d --build
+#
+# Runs on any Docker host. Build context is the repository root (this file lives
+# in deploy/). All host-specific settings come from deploy/.env.
+
+name: tablora
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tablora-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in deploy/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in deploy/.env}
+    # Data directory comes from TABLORA_DATA_DIR (see deploy/.env.example); it must
+    # already exist and be owned by uid 999 (the `postgres` user inside the image).
+    # PostgreSQL is not published on the host — only the other containers on the
+    # `tablora` network can reach it.
+    volumes:
+      - ${TABLORA_DATA_DIR:?set TABLORA_DATA_DIR in deploy/.env}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` alone reports success as soon as the server accepts connections,
+      # even if the database itself was never created — so actually query it.
+      test:
+        ["CMD-SHELL", "psql -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -c 'SELECT 1' >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    networks: [tablora]
+
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    image: tablora-backend:latest
+    container_name: tablora-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      HOST: 0.0.0.0
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    # Published on the LAN so a reverse proxy (possibly on another host) can reach
+    # it: route the /api path of your domain to this port. Not meant to be exposed
+    # to the internet directly.
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging: *default-logging
+    networks: [tablora]
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+      args:
+        # Compiled into the browser bundle — must be the public URL.
+        NEXT_PUBLIC_API_URL: ${PUBLIC_URL:?set PUBLIC_URL in deploy/.env}
+    image: tablora-frontend:latest
+    container_name: tablora-frontend
+    restart: unless-stopped
+    depends_on: [backend]
+    environment:
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production
+    # The web UI; point your reverse proxy at this port.
+    ports:
+      - "3000:3000"
+    logging: *default-logging
+    networks: [tablora]
+
+networks:
+  tablora:
+    driver: bridge
