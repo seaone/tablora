@@ -1,0 +1,15 @@
+{
+  "name": "tablora",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "packages/*"
+  ],
+  "scripts": {
+    "build:shared": "npm run build -w @tablora/shared",
+    "dev:shared": "npm run dev -w @tablora/shared",
+    "build": "npm run build -w @tablora/shared && npm run build -w tablora-backend && npm run build -w tablora-frontend"
+  }
+}

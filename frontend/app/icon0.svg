@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="Layer_2" viewBox="0 0 36 36" width="36" height="36"><metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:creator>RealFaviconGenerator</dc:creator><dc:source>https://realfavicongenerator.net</dc:source></rdf:Description></rdf:RDF></metadata><defs>
+    <style>
+      .cls-1 {
+        fill: #733e0a;
+      }
+
+      .cls-2 {
+        fill: #fec700;
+      }
+
+      .cls-3 {
+        fill: #f5f4f4;
+      }
+    </style>
+  </defs><g id="Layer_1-2" data-name="Layer_1">
+    <rect class="cls-2" width="36" height="36" rx="8" ry="8"></rect>
+    <path class="cls-1" d="M6,12v10c0,1.1.9,2,2,2h6v4c0,1.1.9,2,2,2h4c1.1,0,2-.9,2-2v-6h6c1.1,0,2-.9,2-2v-8H6Z"></path>
+    <path class="cls-3" d="M28,6H8c-1.1,0-2,.9-2,2v6c0,1.1.9,2,2,2h6v4c0,1.1.9,2,2,2h4c1.1,0,2-.9,2-2v-6h6c1.1,0,2-.9,2-2v-4c0-1.1-.9-2-2-2Z"></path>
+  </g></svg>

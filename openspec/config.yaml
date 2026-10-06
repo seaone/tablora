@@ -1,0 +1,66 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+context: |
+  Tablora (Таблора) — a real-time competition results table web app. An organizer
+  creates a results table and shares two QR links: a judge link (/t/:id/edit) for
+  entering scores from phones, and a spectator link (/t/:id) that mirrors results
+  live on a screen. There is no authentication yet — anyone with a link can edit.
+  All user-facing copy is in Russian.
+
+  Repository: npm workspaces monorepo (root package.json), three packages:
+  - backend/         — Fastify 5 REST API + SSE; Drizzle ORM; postgres (postgres.js)
+                       driver; nanoid; ESM ("type": "module", module NodeNext).
+                       DB tables are created on startup, so drizzle migrations are optional.
+  - frontend/        — Next.js (App Router), TypeScript (strict), Tailwind CSS,
+                       class-variance-authority + tailwind-merge, shadcn/ui,
+                       organized with Feature-Sliced Design.
+  - packages/shared/ — @tablora/shared, the single source of truth for the
+                       backend<->frontend wire contract (ColumnType/COLUMN_TYPES,
+                       SSE_EVENTS/SSEEventName). Built to dist/ on install; never
+                       redefine its literals in backend/frontend.
+
+  npm package names are tablora-backend / tablora-frontend; `-w` in scripts refers
+  to the package name, not the directory path.
+
+  Local dev: docker compose up -d postgres; npm run dev -w tablora-backend (port 4000);
+  npm run dev -w tablora-frontend (port 3000). See AGENTS.md for details.
+
+  Backend conventions:
+  - Real-time via Server-Sent Events at GET /api/tables/:id/events.
+  - Columns have a type ("number" | "text" | "time") and a sort order.
+  - Scores are stored per (participant, column) pair.
+
+  Frontend conventions (Feature-Sliced Design):
+  - Layers: _app, _pages, features, entities, shared. Imports flow downward only:
+    _pages -> features -> entities -> shared.
+  - Path aliases: @/* -> src/*, plus @/_app, @/_pages, @/features, @/entities, @/shared.
+  - Style shared/ui components through their `variant` and `size` props, not `className`
+    (className may only carry width utilities).
+  - Design tokens live in src/_app/styles/globals.css (shadcn HSL variables) and
+    tailwind.config.ts (Material-style colors).
+
+  Domain terms: table, column (number|text|time), participant, score.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing

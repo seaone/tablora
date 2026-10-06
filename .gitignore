@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+
+# Local npm cache (kept inside the repo for sandboxed installs)
+.npm-cache/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editors / tooling (mcp.json may hold API keys)
+.vscode/
+.idea/
+.zed/
+
+# Vendored agent skills (versions are pinned in skills-lock.json)
+.agents/
+
+# Deployment
+.vercel
+
+# Testing
+coverage/
