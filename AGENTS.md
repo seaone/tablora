@@ -20,6 +20,7 @@ Tablora (Таблора) is a real-time competition results table web applicatio
 
 ```
 /
+├── .github/workflows/  # CI: tests, then container images published to GHCR
 ├── backend/            # Fastify 5 REST API + SSE (Drizzle ORM + PostgreSQL)
 ├── frontend/           # Next.js (App Router) + TypeScript + Tailwind + Feature-Sliced Design
 ├── packages/shared/    # @tablora/shared — wire contract shared by backend and frontend
@@ -103,12 +104,30 @@ The frontend defaults to `NEXT_PUBLIC_API_URL=http://localhost:4000`, matching t
 
 ## Production build
 
-Docker images are built from the **repository root**, not from `backend/` or `frontend/` — both Dockerfiles need the `@tablora/shared` workspace:
+CI (`.github/workflows/ci.yml`) runs the backend tests on every push and pull request. On a push to `main` it also builds both images and publishes them to GHCR under the repository owner:
+
+- `ghcr.io/seaone/tablora-backend:latest` and `:sha-<commit>`
+- `ghcr.io/seaone/tablora-frontend:latest` and `:sha-<commit>`
+
+The `sha-` tags are immutable and exist so a deployment can be rolled back.
+
+Both Dockerfiles use the **repository root** as the build context — not `backend/` or `frontend/` — because they need the `@tablora/shared` workspace.
+
+Deployment is **not** automated, and its runbook lives outside this repository. On the deployment host, point `deploy/.env` at the published images (see `deploy/.env.example`) and restart the stack:
+
+```sh
+docker compose -f deploy/docker-compose.yml pull
+docker compose -f deploy/docker-compose.yml up -d --no-build
+```
+
+To build and run the whole stack from source instead:
 
 ```sh
 docker compose -f deploy/docker-compose.yml up -d --build
 ```
 
-- `NEXT_PUBLIC_API_URL` is baked into the frontend bundle at **build** time, not read at runtime. The build fails if it is empty. After changing the value you must rebuild the frontend image — restarting the container is not enough.
+Things that will bite you:
+
+- `NEXT_PUBLIC_API_URL` is baked into the browser bundle at **build** time, not read at runtime, and the build fails if it is empty. In CI it comes from the repository variable `PUBLIC_URL`; a from-source build takes it from `deploy/.env`. Changing it requires a rebuild — restarting a container is not enough.
 - `frontend/next.config.ts` sets `output: "standalone"`, which `frontend/Dockerfile` relies on; don't remove it without adjusting the image.
-- `deploy/.env` is gitignored — start from `deploy/.env.example`.
+- `deploy/.env` is gitignored — start from `deploy/.env.example`. `TABLORA_IMAGE_PREFIX` there must match the namespace CI publishes to (`ghcr.io/seaone`); `TABLORA_IMAGE_TAG` selects which build to run.

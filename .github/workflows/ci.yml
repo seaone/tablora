@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Read-only by default; the publish job asks for the extra scope it needs.
+permissions:
+  contents: read
+
+# A newer push supersedes an in-flight run for the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  # Images live under the repository owner, so the workflow never hardcodes an
+  # organisation. deploy/docker-compose.yml selects the same namespace through
+  # TABLORA_IMAGE_PREFIX.
+  IMAGE_NAMESPACE: ${{ github.repository_owner }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Installs all workspaces and compiles @tablora/shared via its prepare script.
+      - run: npm ci
+
+      - run: npm test -w tablora-backend
+
+  # Publishing only happens on main, but a missing PUBLIC_URL would silently bake
+  # http://localhost:4000 into the frontend bundle, so fail before anything ships.
+  preflight:
+    needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      # NEXT_PUBLIC_API_URL is compiled into the browser bundle at build time, so an
+      # empty value would produce an image that calls http://localhost:4000. The
+      # Dockerfile also guards against this; catching it here names the fix.
+      - name: Check that PUBLIC_URL is configured
+        env:
+          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+        run: |
+          if [ -z "$PUBLIC_URL" ]; then
+            echo "::error::Repository variable PUBLIC_URL is not set. Add it under Settings → Secrets and variables → Actions → Variables, e.g. https://tablora.example.com"
+            exit 1
+          fi
+
+  publish:
+    needs: [test, preflight]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: tablora-backend
+            dockerfile: backend/Dockerfile
+            cache_scope: backend
+            build_args: ""
+          - image: tablora-frontend
+            dockerfile: frontend/Dockerfile
+            cache_scope: frontend
+            build_args: NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # `sha-<commit>` is the tag a rollback targets; `latest` is what the server
+      # follows by default.
+      - name: Build and push ${{ matrix.image }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          build-args: ${{ matrix.build_args }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}:sha-${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,scope=${{ matrix.cache_scope }},mode=max

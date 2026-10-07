@@ -1,10 +1,19 @@
 # Production stack for Tablora: PostgreSQL + API + web UI.
 #
 #   cp deploy/.env.example deploy/.env   # then fill in the values
+#   docker compose -f deploy/docker-compose.yml up -d
+#
+# Images are normally built by GitHub Actions and pulled from GHCR — see
+# .github/workflows/ci.yml. The `build:` sections are kept so this same file also
+# works for building from source, e.g. before any image has been published:
+#
 #   docker compose -f deploy/docker-compose.yml up -d --build
 #
-# Runs on any Docker host. Build context is the repository root (this file lives
-# in deploy/). All host-specific settings come from deploy/.env.
+# On a deployment host prefer `pull` then `up -d --no-build`, so that a missing
+# image is a clear error instead of an unexpected local build.
+#
+# Build context is the repository root (this file lives in deploy/). All
+# host-specific settings come from deploy/.env.
 
 name: tablora
 
@@ -42,10 +51,13 @@ services:
     networks: [tablora]
 
   backend:
+    # Published by CI (see .github/workflows/ci.yml). `latest` follows main; pin
+    # TABLORA_IMAGE_TAG=sha-<commit> to roll back to an earlier build.
+    image: ${TABLORA_IMAGE_PREFIX:?set TABLORA_IMAGE_PREFIX in deploy/.env}/tablora-backend:${TABLORA_IMAGE_TAG:-latest}
+    # Kept so the stack can also be built from source — see the note at the top.
     build:
       context: ..
       dockerfile: backend/Dockerfile
-    image: tablora-backend:latest
     container_name: tablora-backend
     restart: unless-stopped
     depends_on:
@@ -71,13 +83,16 @@ services:
     networks: [tablora]
 
   frontend:
+    # Published by CI; see the note on the backend service above.
+    image: ${TABLORA_IMAGE_PREFIX:?set TABLORA_IMAGE_PREFIX in deploy/.env}/tablora-frontend:${TABLORA_IMAGE_TAG:-latest}
+    # Kept so the stack can also be built from source. NEXT_PUBLIC_API_URL is only
+    # used by a local build — CI passes the same value as a build arg.
     build:
       context: ..
       dockerfile: frontend/Dockerfile
       args:
         # Compiled into the browser bundle — must be the public URL.
         NEXT_PUBLIC_API_URL: ${PUBLIC_URL:?set PUBLIC_URL in deploy/.env}
-    image: tablora-frontend:latest
     container_name: tablora-frontend
     restart: unless-stopped
     depends_on: [backend]
