@@ -1,6 +1,6 @@
-import type { ColumnType } from "@tablora/shared";
+import type { ColumnType, TableAccessRole } from "@tablora/shared";
 
-export type { ColumnType };
+export type { ColumnType, TableAccessRole };
 
 export interface TableColumn {
   id: string;
@@ -29,10 +29,18 @@ export interface Score {
   updatedAt: string;
 }
 
+export interface TableJudge {
+  id: string;
+  tableId: string;
+  email: string;
+  createdAt: string;
+}
+
 export interface FullTableData {
   id: string;
   title: string;
   description: string | null;
+  ownerId: string | null;
   createdAt: string;
   updatedAt: string;
   columns: TableColumn[];

@@ -26,7 +26,7 @@ export function subscribeToTable(tableId: string, handlers: TableSubscriptionHan
   function connect() {
     if (closed) return;
 
-    const es = new EventSource(tableEventsUrl(tableId));
+    const es = new EventSource(tableEventsUrl(tableId), { withCredentials: true });
     eventSource = es;
 
     es.addEventListener(SSE_EVENTS.connected, () => {

@@ -68,6 +68,13 @@ services:
       HOST: 0.0.0.0
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Authentication (see deploy/.env.example). FRONTEND_URL is the browser origin
+      # (CORS + post-login redirect); YANDEX_REDIRECT_URI must match the Yandex app.
+      FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL in deploy/.env}
+      YANDEX_CLIENT_ID: ${YANDEX_CLIENT_ID:?set YANDEX_CLIENT_ID in deploy/.env}
+      YANDEX_CLIENT_SECRET: ${YANDEX_CLIENT_SECRET:?set YANDEX_CLIENT_SECRET in deploy/.env}
+      YANDEX_REDIRECT_URI: ${YANDEX_REDIRECT_URI:?set YANDEX_REDIRECT_URI in deploy/.env}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set AUTH_JWT_SECRET in deploy/.env}
     # Published on the LAN so a reverse proxy (possibly on another host) can reach
     # it: route the /api path of your domain to this port. Not meant to be exposed
     # to the internet directly.

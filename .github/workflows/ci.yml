@@ -25,6 +25,25 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # The backend tests exercise the database-backed auth/authorization routes, so a
+    # throwaway Postgres is provisioned per run. `pretest` (npm run db:ensure) creates
+    # the schema against DATABASE_URL before the suite starts.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tablora
+          POSTGRES_PASSWORD: tablora_password
+          POSTGRES_DB: tablora
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tablora -d tablora"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://tablora:tablora_password@localhost:5432/tablora
     steps:
       - uses: actions/checkout@v4
 

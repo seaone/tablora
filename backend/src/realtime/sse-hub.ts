@@ -31,14 +31,16 @@ class SSEHub {
     }
   }
 
-  public subscribe(tableId: string, reply: FastifyReply): SSEClient {
+  public subscribe(tableId: string, reply: FastifyReply, corsOrigin = '*'): SSEClient {
     // Write SSE headers directly to raw response
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       'Connection': 'keep-alive',
       'X-Accel-Buffering': 'no',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin,
+      // A reflecting origin (not '*') is required when the client sends credentials.
+      ...(corsOrigin !== '*' ? { 'Access-Control-Allow-Credentials': 'true' } : {}),
     })
 
     const client: SSEClient = {

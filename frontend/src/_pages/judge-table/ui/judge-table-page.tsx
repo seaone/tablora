@@ -2,6 +2,8 @@
 
 import { AddColumn } from "@/features/add-column";
 import { AddParticipant } from "@/features/add-participant";
+import { AccessDeniedNotice } from "@/entities/user";
+import { SignInNotice } from "@/features/account";
 import {
   Badge,
   Card,
@@ -16,6 +18,7 @@ import {
   Main,
   Page,
 } from "@/shared/ui";
+import { useJudgeAccess } from "../model/use-judge-access";
 import { useJudgeTable } from "../model/use-judge-table";
 import { JudgeColumnsBar } from "./judge-columns-bar";
 import { JudgeParticipantCard } from "./judge-participant-card";
@@ -27,6 +30,7 @@ interface Props {
 }
 
 function JudgeTablePage({ tableId }: Props) {
+  const { user, authLoading, loading: accessLoading, isEditor } = useJudgeAccess(tableId);
   const {
     table,
     status,
@@ -40,6 +44,33 @@ function JudgeTablePage({ tableId }: Props) {
     handleDeleteColumn,
     handleDeleteParticipant,
   } = useJudgeTable(tableId);
+
+  if (authLoading || accessLoading) {
+    return <Loader label="Проверка доступа..." />;
+  }
+
+  if (!user) {
+    return (
+      <Page>
+        <Main className="flex-1">
+          <SignInNotice
+            title="Судейская панель"
+            description="Войдите через Яндекс ID, чтобы вносить и изменять результаты."
+          />
+        </Main>
+      </Page>
+    );
+  }
+
+  if (!isEditor) {
+    return (
+      <Page>
+        <Main className="flex-1">
+          <AccessDeniedNotice />
+        </Main>
+      </Page>
+    );
+  }
 
   if (!table) {
     return <Loader label="Загрузка таблицы..." />;

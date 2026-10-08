@@ -12,7 +12,7 @@ Tablora (Таблора) is a real-time competition results table web applicatio
 - **Judge QR** → `/t/:id/edit` — judges scan this to enter and update results from their phones
 - **Spectator QR** → `/t/:id` — displayed on a screen for the audience; updates in real time via SSE without page reload
 
-**Key constraint:** No authentication. Anyone with the link can edit the table. Authorization and authentication will be added later.
+**Access model:** Organizers and judges sign in with Yandex ID. The organizer owns the table and invites judges by email; judges can then edit it. Spectator viewing stays anonymous. See the Authentication notes under Backend.
 
 **UI language:** All user-facing copy is Russian (labels, placeholders, buttons, metadata).
 
@@ -35,6 +35,8 @@ npm workspaces (root `package.json`). npm package names stay `tablora-backend` /
 
 - `COLUMN_TYPES` / `ColumnType` — supported column types (`"number" | "text" | "time"`).
 - `SSE_EVENTS` / `SSEEventName` — Server-Sent Event names.
+- `AuthUser` — the signed-in user shape returned by the API.
+- `TABLE_ACCESS_ROLES` / `TableAccessRole` — a caller's relationship to a table (`"owner" | "judge" | "viewer"`).
 
 Rules:
 
@@ -45,6 +47,8 @@ Rules:
 ## Backend
 
 - Stack: Fastify 5, Drizzle ORM, `postgres` (postgres.js) driver, nanoid. ESM (`"type": "module"`).
+- Authentication: Yandex ID via `@fastify/oauth2`, with a `@fastify/jwt` session cookie. Auth routes live under `/api/auth` (`/yandex`, `/yandex/callback`, `/me`, `/logout`). Table mutations require the table owner or an authorized judge; reads and the SSE stream stay public (see the `authentication` and `judge-authorization` specs).
+- Config: `FRONTEND_URL`, `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_REDIRECT_URI`, `AUTH_JWT_SECRET` (see `backend/.env.example`).
 - Real-time via Server-Sent Events at `GET /api/tables/:id/events`.
 - Scripts: `npm run dev` (tsx watch), `npm run db:generate|db:push|db:migrate` (drizzle-kit), `npm test`.
 - Schema bootstrap lives in `src/db/ensureTablesExist()`. postgres.js sends every tagged query as a single prepared statement, so **never put two SQL commands in one `sql` template literal** — Postgres rejects it with `cannot insert multiple commands into a prepared statement`, and the caller only logs a warning, so a partial schema fails silently at runtime. Each statement needs its own `sql` call.
@@ -58,10 +62,10 @@ Rules:
 
 ```
 src/
-├── _app/       # providers, global styles
+├── _app/       # providers (incl. auth), global styles
 ├── _pages/     # page composition: home, create-table, table-spectator, table-judge, table-share
-├── features/   # reusable user interactions (add-column, edit-column)
-├── entities/   # domain entities (table)
+├── features/   # reusable user interactions (add-column, edit-column, sign-out)
+├── entities/   # domain entities (table, user)
 └── shared/     # ui, api, config, lib
 ```
 
@@ -86,7 +90,7 @@ Style `shared/ui` components through their `variant` and `size` props, not `clas
 
 ### Real-time data flow
 
-`entities/table/model/use-live-table.ts` fetches the table and subscribes to SSE with auto-reconnect; `shared/api` exposes the typed REST client (`fetchTable`, `createTable`, `submitScores`, `addParticipant`, `addColumn`).
+`entities/table/model/use-live-table.ts` fetches the table and subscribes to SSE with auto-reconnect; the SSE stream is opened with `withCredentials` so the session cookie is shared. `shared/api` exposes the typed REST client (`fetchTable`, `createTable`, `submitScores`, `addParticipant`, `addColumn`) plus the auth calls (`fetchCurrentUser`, the sign-in URL, `signOut`).
 
 ## Local Development
 
@@ -97,10 +101,12 @@ All commands run from the repository root. `-w` refers to the npm package name (
 - Backend: `npm run dev -w tablora-backend` (tsx watch, http://localhost:4000).
 - Frontend: `npm run dev -w tablora-frontend` (Next, http://localhost:3000).
 - Only when editing `packages/shared`: `npm run dev:shared`.
-- Backend tests: `npm test -w tablora-backend`.
+- Backend tests: `npm test -w tablora-backend` — requires the Postgres container above (a `pretest` step creates the schema; CI provides its own Postgres service).
 - Build everything: `npm run build`.
 
 The frontend defaults to `NEXT_PUBLIC_API_URL=http://localhost:4000`, matching the backend port.
+
+For sign-in to work locally, copy `backend/.env.example` to `backend/.env` and fill in the Yandex app credentials plus `AUTH_JWT_SECRET`. The local redirect URI is `http://localhost:4000/api/auth/yandex/callback` and must match the Yandex app registration.
 
 ## Production build
 

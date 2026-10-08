@@ -20,13 +20,49 @@ export const db = drizzle(sql, { schema })
 // that with "cannot insert multiple commands into a prepared statement".
 export async function ensureTablesExist() {
   await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id VARCHAR(36) PRIMARY KEY,
+      display_name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS identities (
+      id VARCHAR(36) PRIMARY KEY,
+      user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      provider VARCHAR(32) NOT NULL,
+      provider_user_id VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `
+
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS identities_provider_user_unique_idx ON identities(provider, provider_user_id);
+  `
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS identities_user_id_idx ON identities(user_id);
+  `
+
+  await sql`
     CREATE TABLE IF NOT EXISTS tables (
       id VARCHAR(36) PRIMARY KEY,
       title VARCHAR(255) NOT NULL,
       description TEXT,
+      owner_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `
+
+  // Tables created before ownership existed need the column added separately,
+  // since CREATE TABLE IF NOT EXISTS leaves an existing table untouched.
+  await sql`
+    ALTER TABLE tables ADD COLUMN IF NOT EXISTS owner_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL;
   `
 
   await sql`
@@ -76,6 +112,36 @@ export async function ensureTablesExist() {
 
   await sql`
     CREATE INDEX IF NOT EXISTS scores_table_id_idx ON scores(table_id);
+  `
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id VARCHAR(36) PRIMARY KEY,
+      user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON sessions(user_id);
+  `
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS table_judges (
+      id VARCHAR(36) PRIMARY KEY,
+      table_id VARCHAR(36) NOT NULL REFERENCES tables(id) ON DELETE CASCADE,
+      email VARCHAR(255) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `
+
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS table_judges_table_email_unique_idx ON table_judges(table_id, email);
+  `
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS table_judges_table_id_idx ON table_judges(table_id);
   `
 }
 

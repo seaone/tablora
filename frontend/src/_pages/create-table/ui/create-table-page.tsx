@@ -1,9 +1,15 @@
+"use client";
+
 import Link from "next/link";
-import { Footer, Main, Page } from "@/shared/ui";
+import { useAuth } from "@/entities/user";
+import { SignInNotice } from "@/features/account";
+import { Footer, Loader, Main, Page } from "@/shared/ui";
 import { CreateTableHeader } from "./create-table-header";
 import { CreateTableWizard } from "./create-table-wizard";
 
 function CreateTablePage() {
+  const { user, loading } = useAuth();
+
   return (
     <Page>
       {/* TOP HEADER / WIZARD APP BAR matching Stitch */}
@@ -11,7 +17,16 @@ function CreateTablePage() {
 
       {/* MAIN CANVAS */}
       <Main className="flex-1">
-        <CreateTableWizard />
+        {loading ? (
+          <Loader label="Проверка доступа..." />
+        ) : user ? (
+          <CreateTableWizard />
+        ) : (
+          <SignInNotice
+            title="Создание таблицы"
+            description="Войдите через Яндекс ID, чтобы создать турнирную таблицу."
+          />
+        )}
       </Main>
 
       {/* MINIMAL FOOTER matching Stitch */}

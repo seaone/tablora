@@ -26,9 +26,20 @@ The system SHALL allow the organizer to copy each access link to the clipboard.
 - **WHEN** the organizer activates the copy action on a link
 - **THEN** the link is copied to the clipboard and the interface indicates the copy succeeded
 
-### Requirement: Open access without authentication
-The system SHALL allow anyone with a link to access and edit the table, with no authentication required.
+### Requirement: Anonymous spectator viewing
+The system SHALL allow anyone with the spectator link to view a table and receive its live updates without signing in.
 
-#### Scenario: Access without login
-- **WHEN** a user opens the judge or spectator link for a table
-- **THEN** the system grants access without requiring any login or credentials
+#### Scenario: View without signing in
+- **WHEN** a visitor opens the spectator link without signing in
+- **THEN** the system shows the table and keeps it updated live
+
+### Requirement: Authenticated judge access
+The system SHALL require a visitor to sign in and to be the table's owner or an authorized judge before the judge link grants editing access.
+
+#### Scenario: Authorized user opens the judge link
+- **WHEN** a signed-in owner or authorized judge opens the judge link
+- **THEN** the system shows the editing interface for the table
+
+#### Scenario: Unauthorized visitor opens the judge link
+- **WHEN** a visitor who is not signed in, or is signed in but is neither the owner nor an authorized judge, opens the judge link
+- **THEN** the system denies editing access and shows an access-denied warning

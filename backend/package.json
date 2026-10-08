@@ -10,12 +10,17 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "tsx src/db/migrate.ts",
+    "db:ensure": "tsx src/db/ensure-schema.ts",
+    "pretest": "npm run db:ensure",
     "test": "node --test --import tsx src/**/*.test.ts"
   },
   "dependencies": {
-    "@tablora/shared": "*",
+    "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^10.0.2",
+    "@fastify/jwt": "^10.2.2",
+    "@fastify/oauth2": "^8.3.0",
     "@fastify/sensible": "^6.0.3",
+    "@tablora/shared": "*",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.38.3",
     "fastify": "^5.2.1",
@@ -29,4 +34,3 @@
     "typescript": "^5.7.3"
   }
 }
-

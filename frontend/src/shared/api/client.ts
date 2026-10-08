@@ -4,14 +4,20 @@ import type {
   CreateTablePayload,
   Participant,
   TableColumn,
+  TableJudge,
+  TableAccessRole,
   ColumnType,
 } from "./table";
 
 const baseUrl = APP_CONFIG.apiUrl;
 
+/** All requests send the session cookie so authenticated calls work cross-origin. */
+const jsonHeaders = { "Content-Type": "application/json" };
+
 export async function fetchTable(id: string): Promise<FullTableData> {
   const res = await fetch(`${baseUrl}/api/tables/${id}`, {
     cache: "no-store",
+    credentials: "include",
   });
   if (!res.ok) {
     throw new Error(`Failed to load table: ${res.statusText}`);
@@ -19,10 +25,23 @@ export async function fetchTable(id: string): Promise<FullTableData> {
   return res.json();
 }
 
+export async function fetchTableAccess(id: string): Promise<TableAccessRole> {
+  const res = await fetch(`${baseUrl}/api/tables/${id}/access`, {
+    cache: "no-store",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to load access: ${res.statusText}`);
+  }
+  const data = (await res.json()) as { role: TableAccessRole };
+  return data.role;
+}
+
 export async function createTable(payload: CreateTablePayload): Promise<FullTableData> {
   const res = await fetch(`${baseUrl}/api/tables`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders,
+    credentials: "include",
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -39,7 +58,8 @@ export async function submitScores(
 ): Promise<{ success: boolean; table: FullTableData }> {
   const res = await fetch(`${baseUrl}/api/tables/${tableId}/participants/${participantId}/scores`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders,
+    credentials: "include",
     body: JSON.stringify({ scores }),
   });
   if (!res.ok) {
@@ -55,7 +75,8 @@ export async function addParticipant(
 ): Promise<Participant> {
   const res = await fetch(`${baseUrl}/api/tables/${tableId}/participants`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders,
+    credentials: "include",
     body: JSON.stringify({ name, description }),
   });
   if (!res.ok) {
@@ -72,7 +93,8 @@ export async function updateParticipant(
 ): Promise<Participant> {
   const res = await fetch(`${baseUrl}/api/tables/${tableId}/participants/${participantId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders,
+    credentials: "include",
     body: JSON.stringify({ name, description }),
   });
   if (!res.ok) {
@@ -88,7 +110,8 @@ export async function addColumn(
 ): Promise<TableColumn> {
   const res = await fetch(`${baseUrl}/api/tables/${tableId}/columns`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders,
+    credentials: "include",
     body: JSON.stringify({ name, type }),
   });
   if (!res.ok) {
@@ -105,7 +128,8 @@ export async function updateColumn(
 ): Promise<TableColumn> {
   const res = await fetch(`${baseUrl}/api/tables/${tableId}/columns/${columnId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders,
+    credentials: "include",
     body: JSON.stringify({ name, type }),
   });
   if (!res.ok) {
@@ -120,6 +144,7 @@ export async function deleteParticipant(
 ): Promise<{ success: boolean }> {
   const res = await fetch(`${baseUrl}/api/tables/${tableId}/participants/${participantId}`, {
     method: "DELETE",
+    credentials: "include",
   });
   if (!res.ok) {
     throw new Error("Failed to delete participant");
@@ -133,6 +158,7 @@ export async function deleteColumn(
 ): Promise<{ success: boolean }> {
   const res = await fetch(`${baseUrl}/api/tables/${tableId}/columns/${columnId}`, {
     method: "DELETE",
+    credentials: "include",
   });
   if (!res.ok) {
     throw new Error("Failed to delete column");
@@ -143,9 +169,49 @@ export async function deleteColumn(
 export async function deleteTable(tableId: string): Promise<{ success: boolean }> {
   const res = await fetch(`${baseUrl}/api/tables/${tableId}`, {
     method: "DELETE",
+    credentials: "include",
   });
   if (!res.ok) {
     throw new Error("Failed to delete table");
+  }
+  return res.json();
+}
+
+export async function fetchJudges(tableId: string): Promise<TableJudge[]> {
+  const res = await fetch(`${baseUrl}/api/tables/${tableId}/judges`, {
+    cache: "no-store",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    throw new Error("Failed to load judges");
+  }
+  const data = (await res.json()) as { judges: TableJudge[] };
+  return data.judges;
+}
+
+export async function addJudge(
+  tableId: string,
+  email: string,
+): Promise<{ judge: TableJudge; created: boolean }> {
+  const res = await fetch(`${baseUrl}/api/tables/${tableId}/judges`, {
+    method: "POST",
+    headers: jsonHeaders,
+    credentials: "include",
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    throw new Error("Failed to add judge");
+  }
+  return res.json();
+}
+
+export async function removeJudge(tableId: string, judgeId: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${baseUrl}/api/tables/${tableId}/judges/${judgeId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    throw new Error("Failed to remove judge");
   }
   return res.json();
 }

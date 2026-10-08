@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Check, X } from "lucide-react";
+import { AccountControl } from "@/features/account";
 import { Header, buttonVariants } from "@/shared/ui";
 import { useMediaQuery } from "@/shared/lib";
 
@@ -14,13 +15,16 @@ function ShareTableHeader() {
         </span>
       }
       rightContent={
-        <Link
-          href="/"
-          className={buttonVariants({ variant: "outline", size: isMobile ? "icon" : "default" })}
-        >
-          <X className="w-4 h-4" aria-hidden="true" />
-          <span className="hidden sm:inline">Выйти</span>
-        </Link>
+        <>
+          <AccountControl />
+          <Link
+            href="/"
+            className={buttonVariants({ variant: "outline", size: isMobile ? "icon" : "default" })}
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+            <span className="hidden sm:inline">На главную</span>
+          </Link>
+        </>
       }
     />
   );

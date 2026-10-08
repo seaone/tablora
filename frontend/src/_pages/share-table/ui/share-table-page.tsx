@@ -15,6 +15,7 @@ import {
 } from "@/shared/ui";
 import { useTableShare } from "../model/use-table-share";
 import { ShareAccessCards } from "./share-access-cards";
+import { ShareJudgesCard } from "./share-judges-card";
 import { ShareTableHeader } from "./share-table-header";
 import { ShareTablePreview } from "./share-table-preview";
 
@@ -23,8 +24,16 @@ interface Props {
 }
 
 function ShareTablePage({ tableId }: Props) {
-  const { table, loading, copiedJudge, copiedSpectator, judgeUrl, spectatorUrl, copyToClipboard } =
-    useTableShare(tableId);
+  const {
+    table,
+    role,
+    loading,
+    copiedJudge,
+    copiedSpectator,
+    judgeUrl,
+    spectatorUrl,
+    copyToClipboard,
+  } = useTableShare(tableId);
 
   if (loading) {
     return <Loader label="Загрузка данных турнира..." />;
@@ -80,6 +89,8 @@ function ShareTablePage({ tableId }: Props) {
                 />
               </CardContent>
             </Card>
+
+            {role === "owner" && <ShareJudgesCard tableId={tableId} />}
           </div>
 
           {/* Right Column: Live Table Preview (5 cols) matching Stitch */}

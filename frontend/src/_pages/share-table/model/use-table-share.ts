@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { fetchTable, type FullTableData } from "@/shared/api";
+import type { TableAccessRole } from "@tablora/shared";
+import { useAuth } from "@/entities/user";
+import { fetchTable, fetchTableAccess, type FullTableData } from "@/shared/api";
 
 export const useTableShare = (tableId: string) => {
+  const { user } = useAuth();
   const [table, setTable] = useState<FullTableData | null>(null);
+  const [role, setRole] = useState<TableAccessRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedJudge, setCopiedJudge] = useState(false);
   const [copiedSpectator, setCopiedSpectator] = useState(false);
@@ -26,6 +30,20 @@ export const useTableShare = (tableId: string) => {
       });
   }, [tableId]);
 
+  useEffect(() => {
+    let active = true;
+    fetchTableAccess(tableId)
+      .then((value) => {
+        if (active) setRole(value);
+      })
+      .catch(() => {
+        if (active) setRole(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [tableId, user?.id]);
+
   const judgeUrl = `${origin}/t/${tableId}/edit`;
   const spectatorUrl = `${origin}/t/${tableId}`;
 
@@ -42,6 +60,7 @@ export const useTableShare = (tableId: string) => {
 
   return {
     table,
+    role,
     loading,
     copiedJudge,
     copiedSpectator,

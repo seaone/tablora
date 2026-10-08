@@ -1,6 +1,7 @@
 import { Eye } from "lucide-react";
 import Link from "next/link";
 import { type ConnectionStatus, ConnectionStatusBadge } from "@/entities/table";
+import { AccountControl } from "@/features/account";
 import { useMediaQuery } from "@/shared/lib";
 import { buttonVariants, Header } from "@/shared/ui";
 import { useJudgeTable } from "../model/use-judge-table";
@@ -23,6 +24,7 @@ function JudgeTableHeader({ tableId, status }: Props) {
       subtitle={<ConnectionStatusBadge status={status} />}
       rightContent={
         <>
+          <AccountControl />
           <DeleteTable onConfirm={handleDeleteTable} />
 
           <Link
