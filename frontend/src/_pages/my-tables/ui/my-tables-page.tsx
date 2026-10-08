@@ -8,7 +8,7 @@ import { MyTablesHeader } from "./my-tables-header";
 import { MyTablesList } from "./my-tables-list";
 
 function MyTablesPage() {
-  const { tables, loading, error, authLoading, authed } = useMyTables();
+  const { tables, loading, error, authLoading, authed, deleteTable } = useMyTables();
 
   return (
     <Page>
@@ -18,10 +18,7 @@ function MyTablesPage() {
         {authLoading ? (
           <Loader label="Загрузка..." />
         ) : !authed ? (
-          <SignInNotice
-            title="Нужно войти"
-            description="Войдите через Яндекс, чтобы увидеть свои таблицы."
-          />
+          <SignInNotice title="Нужно войти" description="Войдите, чтобы увидеть свои таблицы." />
         ) : loading ? (
           <Loader label="Загрузка таблиц..." />
         ) : error ? (
@@ -29,7 +26,7 @@ function MyTablesPage() {
             Не удалось загрузить таблицы. Попробуйте обновить страницу.
           </p>
         ) : (
-          <MyTablesList tables={tables} />
+          <MyTablesList tables={tables} onDeleteTable={deleteTable} />
         )}
       </Main>
 

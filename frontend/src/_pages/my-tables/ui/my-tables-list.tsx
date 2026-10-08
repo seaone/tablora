@@ -2,16 +2,23 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ListChecks } from "lucide-react";
+import { Edit3, ListChecks } from "lucide-react";
+import { DeleteTable } from "@/features/delete-table";
 import type { MyTableSummary, MyTablesRoleFilter } from "@/shared/api";
 import {
   Badge,
   buttonVariants,
   Card,
+  CardAction,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
   Select,
   SelectContent,
   SelectItem,
@@ -40,9 +47,11 @@ function formatCreatedAt(iso: string): string {
 
 interface Props {
   tables: MyTableSummary[];
+  /** Deletion effect injected by the page (API call + optimistic removal). */
+  onDeleteTable: (id: string) => void | Promise<void>;
 }
 
-function MyTablesList({ tables }: Props) {
+function MyTablesList({ tables, onDeleteTable }: Props) {
   const [filter, setFilter] = useState<MyTablesRoleFilter>("all");
   const visible = filter === "all" ? tables : tables.filter((table) => table.role === filter);
 
@@ -64,59 +73,66 @@ function MyTablesList({ tables }: Props) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-xl sm:text-2xl font-bold">Мои таблицы</h1>
-        <Select value={filter} onValueChange={(value) => setFilter(value as MyTablesRoleFilter)}>
-          <SelectTrigger aria-label="Фильтр по роли">
-            <SelectValue>{FILTER_LABELS[filter]}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{FILTER_LABELS.all}</SelectItem>
-            <SelectItem value="owner">{FILTER_LABELS.owner}</SelectItem>
-            <SelectItem value="judge">{FILTER_LABELS.judge}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-heading text-xl sm:text-2xl font-bold">Мои таблицы</CardTitle>
+        <CardAction>
+          <Select value={filter} onValueChange={(value) => setFilter(value as MyTablesRoleFilter)}>
+            <SelectTrigger aria-label="Фильтр по роли">
+              <SelectValue>{FILTER_LABELS[filter]}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{FILTER_LABELS.all}</SelectItem>
+              <SelectItem value="owner">{FILTER_LABELS.owner}</SelectItem>
+              <SelectItem value="judge">{FILTER_LABELS.judge}</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardAction>
+      </CardHeader>
 
-      {visible.length === 0 ? (
-        <p className="py-12 text-center text-sm text-muted-foreground">Нет таблиц с этой ролью.</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {visible.map((table) => (
-            <Card key={table.id} size="sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+      <CardContent>
+        {visible.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            Нет таблиц с этой ролью.
+          </p>
+        ) : (
+          <ItemGroup>
+            {visible.map((table) => (
+              <Item key={table.id} variant="card" size="sm" className="items-start">
+                <ItemContent>
+                  <ItemTitle>
+                    {table.title}
+                    <Badge variant={table.role === "owner" ? "default" : "secondary"}>
+                      {ROLE_LABELS[table.role]}
+                    </Badge>
+                  </ItemTitle>
+                  {table.description ? (
+                    <ItemDescription>{table.description}</ItemDescription>
+                  ) : null}
+                  <ItemDescription>{formatCreatedAt(table.createdAt)}</ItemDescription>
+                </ItemContent>
+                <ItemActions>
                   <Link
                     href={`/t/${table.id}/edit`}
-                    className="hover:text-primary hover:underline underline-offset-4 transition-colors"
+                    title="Редактировать"
+                    className={buttonVariants({ variant: "ghost", size: "icon" })}
                   >
-                    {table.title}
+                    <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
                   </Link>
-                  <Badge variant={table.role === "owner" ? "default" : "secondary"}>
-                    {ROLE_LABELS[table.role]}
-                  </Badge>
-                </CardTitle>
-                {table.description ? (
-                  <CardDescription className="line-clamp-2">{table.description}</CardDescription>
-                ) : null}
-              </CardHeader>
-              <CardContent className="flex items-center justify-between gap-3">
-                <span className="text-xs text-muted-foreground">
-                  Создана {formatCreatedAt(table.createdAt)}
-                </span>
-                <Link
-                  href={`/t/${table.id}/edit`}
-                  className={buttonVariants({ variant: "outline", size: "sm" })}
-                >
-                  Открыть
-                </Link>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+                  {table.role === "owner" ? (
+                    <DeleteTable
+                      onConfirm={() => onDeleteTable(table.id)}
+                      variant="ghost"
+                      size="icon"
+                    />
+                  ) : null}
+                </ItemActions>
+              </Item>
+            ))}
+          </ItemGroup>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

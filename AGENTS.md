@@ -63,15 +63,15 @@ Rules:
 ```
 src/
 ├── _app/       # providers (incl. auth), global styles
-├── _pages/     # page composition: home, create-table, table-spectator, table-judge, table-share
-├── features/   # reusable user interactions (add-column, edit-column, sign-out)
+├── _pages/     # page composition: home, create-table, judge-table, my-tables, share-table, table-spectator
+├── features/   # reusable user interactions (account, add/edit/delete column, add/edit/delete participant, delete-table)
 ├── entities/   # domain entities (table, user)
 └── shared/     # ui, api, config, lib
 ```
 
 Imports flow downward only: `_pages → features → entities → shared`.
 
-Features are effect-injected: a feature owns the interaction (open/dialog/submitting/error) and receives the effect via an `onSubmit` prop, so the same slice is reused by pages with different behaviours (e.g. API-backed in table-judge, local form state in create-table).
+Features are effect-injected: a feature owns the interaction (open/dialog/submitting/error) and receives the effect via an `onSubmit` prop, so the same slice is reused by pages with different behaviours (e.g. API-backed in judge-table, local form state in create-table).
 
 ### Path aliases (`tsconfig.json`)
 
@@ -79,7 +79,7 @@ Features are effect-injected: a feature owns the interaction (open/dialog/submit
 
 ### Design system
 
-- UI kit in `src/shared/ui/*` (Button, Input, Card, Badge, Dialog, Select, QRCode, Header, Footer).
+- UI kit in `src/shared/ui/*` (Button, Input, Card, Item, Badge, Dialog, DropdownMenu, ConfirmDialog, Select, QRCode, Header, Footer).
 - Tokens live in two places: shadcn HSL variables in `src/_app/styles/globals.css`, and Material-style colors in `tailwind.config.ts` (`surface`, `on-surface`, `primary-fixed`, `outline-variant`, …).
 
 ### Component styling convention

@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/entities/user";
-import { fetchMyTables, type MyTableSummary } from "@/shared/api";
+import {
+  deleteTable as deleteTableRequest,
+  fetchMyTables,
+  type MyTableSummary,
+} from "@/shared/api";
 
 interface UseMyTablesResult {
   tables: MyTableSummary[];
@@ -10,6 +14,7 @@ interface UseMyTablesResult {
   error: boolean;
   authLoading: boolean;
   authed: boolean;
+  deleteTable: (id: string) => Promise<void>;
 }
 
 /** Loads the signed-in user's directory of owned and judged tables. */
@@ -46,5 +51,10 @@ export function useMyTables(): UseMyTablesResult {
     };
   }, [authLoading, user?.id]);
 
-  return { tables, loading, error, authLoading, authed: Boolean(user) };
+  const deleteTable = async (id: string) => {
+    await deleteTableRequest(id);
+    setTables((prev) => prev.filter((table) => table.id !== id));
+  };
+
+  return { tables, loading, error, authLoading, authed: Boolean(user), deleteTable };
 }

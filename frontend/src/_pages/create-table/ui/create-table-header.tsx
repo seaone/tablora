@@ -1,8 +1,8 @@
 "use client";
 
+import { AccountControl } from "@/features/account";
 import { useMediaQuery } from "@/shared/lib";
 import { buttonVariants, Header } from "@/shared/ui";
-import { X } from "lucide-react";
 import Link from "next/link";
 
 function CreateTableHeader() {
@@ -16,13 +16,15 @@ function CreateTableHeader() {
         </span>
       }
       rightContent={
-        <Link
-          href="/"
-          className={buttonVariants({ variant: "outline", size: isMobile ? "icon" : "default" })}
-        >
-          <X className="w-4 h-4" aria-hidden="true" />
-          <span className="hidden sm:inline">Выйти</span>
-        </Link>
+        <>
+          <Link
+            href="/"
+            className={buttonVariants({ variant: "outline", size: isMobile ? "icon" : "default" })}
+          >
+            <span className="hidden sm:inline">На главную</span>
+          </Link>
+          <AccountControl />
+        </>
       }
     />
   );

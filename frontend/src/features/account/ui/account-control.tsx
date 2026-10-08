@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, LogIn, LogOut, Table2, User as UserIcon } from "lucide-react";
+import { LogIn, LogOut, Table2, User as UserIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -48,21 +48,23 @@ function AccountControl() {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="outline" size={isMobile ? "icon" : "default"} title={user.displayName}>
+          <Button variant="outline" size="icon" title={user.displayName}>
             <UserIcon className="w-4 h-4" aria-hidden="true" />
-            <span className="hidden sm:inline max-w-40 truncate">{user.displayName}</span>
-            {!isMobile && <ChevronDown className="w-4 h-4 opacity-60" aria-hidden="true" />}
           </Button>
         }
       />
-      <DropdownMenuContent align="end" className="min-w-48">
+      <DropdownMenuContent align="end" className="min-w-48 max-w-64">
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="truncate">{user.email}</DropdownMenuLabel>
+          <DropdownMenuLabel className="truncate">
+            {user.displayName}
+            <br />
+            {user.email}
+          </DropdownMenuLabel>
           <DropdownMenuItem render={<Link href="/my" />}>
             <Table2 className="w-4 h-4" aria-hidden="true" />
             Мои таблицы
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void signOut()}>
+          <DropdownMenuItem onClick={() => void signOut()} variant="destructive">
             <LogOut className="w-4 h-4" aria-hidden="true" />
             Выйти
           </DropdownMenuItem>

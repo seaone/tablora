@@ -2,10 +2,10 @@ import { Eye } from "lucide-react";
 import Link from "next/link";
 import { type ConnectionStatus, ConnectionStatusBadge } from "@/entities/table";
 import { AccountControl } from "@/features/account";
+import { DeleteTable } from "@/features/delete-table";
 import { useMediaQuery } from "@/shared/lib";
 import { buttonVariants, Header } from "@/shared/ui";
 import { useJudgeTable } from "../model/use-judge-table";
-import { DeleteTable } from "./delete-table";
 
 interface Props {
   tableId: string;
@@ -24,9 +24,11 @@ function JudgeTableHeader({ tableId, status }: Props) {
       subtitle={<ConnectionStatusBadge status={status} />}
       rightContent={
         <>
-          <AccountControl />
-          <DeleteTable onConfirm={handleDeleteTable} />
-
+          <DeleteTable
+            onConfirm={handleDeleteTable}
+            size={isMobile ? "icon" : "default"}
+            withLabel
+          />
           <Link
             href={`/t/${tableId}`}
             className={buttonVariants({
@@ -37,6 +39,7 @@ function JudgeTableHeader({ tableId, status }: Props) {
             <Eye className="w-4 h-4 text-primary" aria-hidden="true" />
             <span className="hidden sm:inline">Табло</span>
           </Link>
+          <AccountControl />
         </>
       }
     />

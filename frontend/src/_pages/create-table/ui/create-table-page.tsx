@@ -24,7 +24,7 @@ function CreateTablePage() {
         ) : (
           <SignInNotice
             title="Создание таблицы"
-            description="Войдите через Яндекс ID, чтобы создать турнирную таблицу."
+            description="Войдите, чтобы создать турнирную таблицу."
           />
         )}
       </Main>

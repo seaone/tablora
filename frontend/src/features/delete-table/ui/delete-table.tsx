@@ -1,19 +1,29 @@
 import { Trash2 } from "lucide-react";
-import type React from "react";
 import { useState } from "react";
-import { useMediaQuery } from "@/shared/lib";
 import { Button, ConfirmDialog } from "@/shared/ui";
+
+const DELETE_LABEL = "Удалить таблицу";
 
 interface DeleteTableProps {
   /** Injected effect: whatever "deleting the table" means for the consumer. */
   onConfirm: () => void | Promise<void>;
+  /** Button variant; defaults to a prominent destructive button. */
+  variant?: "destructive" | "ghost";
+  /** Button size; defaults to the labeled button. */
+  size?: "default" | "icon";
+  /** Render the label next to the icon (hidden on small screens). */
+  withLabel?: boolean;
 }
 
-export const DeleteTable: React.FC<DeleteTableProps> = ({ onConfirm }) => {
+function DeleteTable({
+  onConfirm,
+  variant = "destructive",
+  size = "default",
+  withLabel = false,
+}: DeleteTableProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isMobile = useMediaQuery("(max-width: 640px)");
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
@@ -43,12 +53,13 @@ export const DeleteTable: React.FC<DeleteTableProps> = ({ onConfirm }) => {
     <>
       <Button
         type="button"
-        variant="destructive"
-        size={isMobile ? "icon" : "default"}
+        variant={variant}
+        size={size}
         onClick={() => handleOpenChange(true)}
+        aria-label={DELETE_LABEL}
       >
-        <Trash2 className="w-4 h-4" />
-        <span className="hidden sm:inline">Удалить таблицу</span>
+        <Trash2 className="w-4 h-4" aria-hidden="true" />
+        {withLabel ? <span className="hidden sm:inline">{DELETE_LABEL}</span> : null}
       </Button>
 
       <ConfirmDialog
@@ -65,4 +76,6 @@ export const DeleteTable: React.FC<DeleteTableProps> = ({ onConfirm }) => {
       />
     </>
   );
-};
+}
+
+export { DeleteTable };

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { type ConnectionStatus, ConnectionStatusBadge } from "@/entities/table";
 import { useMediaQuery } from "@/shared/lib";
 import { Button, buttonVariants, Header } from "@/shared/ui";
+import { AccountControl } from "@/features/account";
 
 interface Props {
   tableId: string;
@@ -35,7 +36,6 @@ function SpectatorHeader({ tableId, status, isFullscreen, onToggleFullscreen }: 
             )}
             <span className="hidden sm:inline">{isFullscreen ? "Свернуть" : "На весь экран"}</span>
           </Button>
-
           <Link
             href={`/t/${tableId}/edit`}
             className={buttonVariants({ variant: "outline", size: isMobile ? "icon" : "default" })}
@@ -43,6 +43,7 @@ function SpectatorHeader({ tableId, status, isFullscreen, onToggleFullscreen }: 
             <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
             <span className="hidden sm:inline">Судейство</span>
           </Link>
+          <AccountControl />
         </div>
       }
     />

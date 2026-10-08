@@ -12,7 +12,6 @@ function HomeHeader() {
       className="z-50"
       rightContent={
         <>
-          <AccountControl />
           <Link
             href="/new"
             className={buttonVariants({ variant: "default", size: isMobile ? "icon" : "default" })}
@@ -20,6 +19,7 @@ function HomeHeader() {
             <PlusCircle className="w-4 h-4" aria-hidden="true" />
             <span className="hidden sm:inline">Создать таблицу</span>
           </Link>
+          <AccountControl />
         </>
       }
     />

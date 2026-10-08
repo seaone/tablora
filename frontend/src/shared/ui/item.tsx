@@ -39,6 +39,7 @@ const itemVariants = cva(
         default: "border-transparent",
         outline: "border-border",
         muted: "border-transparent bg-muted/50",
+        card: "border-border bg-card",
       },
       size: {
         default: "gap-3.5 px-4 py-3.5",
