@@ -3,6 +3,7 @@ export * from "./button";
 export * from "./card";
 export * from "./confirm-dialog";
 export * from "./dialog";
+export * from "./dropdown-menu";
 export * from "./field";
 export * from "./footer";
 export * from "./header";

@@ -1,11 +1,20 @@
 "use client";
 
-import { LogIn, LogOut } from "lucide-react";
+import { ChevronDown, LogIn, LogOut, Table2, User as UserIcon } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/entities/user";
 import { useMediaQuery } from "@/shared/lib";
-import { Button } from "@/shared/ui";
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/shared/ui";
 import { SignInDialog } from "./sign-in-dialog";
 
 function AccountControl() {
@@ -36,21 +45,30 @@ function AccountControl() {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="hidden sm:inline text-sm text-muted-foreground max-w-40 truncate">
-        {user.displayName}
-      </span>
-      <Button
-        type="button"
-        variant="outline"
-        size={isMobile ? "icon" : "default"}
-        onClick={() => void signOut()}
-        title="Выйти"
-      >
-        <LogOut className="w-4 h-4" aria-hidden="true" />
-        <span className="hidden sm:inline">Выйти</span>
-      </Button>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button variant="outline" size={isMobile ? "icon" : "default"} title={user.displayName}>
+            <UserIcon className="w-4 h-4" aria-hidden="true" />
+            <span className="hidden sm:inline max-w-40 truncate">{user.displayName}</span>
+            {!isMobile && <ChevronDown className="w-4 h-4 opacity-60" aria-hidden="true" />}
+          </Button>
+        }
+      />
+      <DropdownMenuContent align="end" className="min-w-48">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="truncate">{user.email}</DropdownMenuLabel>
+          <DropdownMenuItem render={<Link href="/my" />}>
+            <Table2 className="w-4 h-4" aria-hidden="true" />
+            Мои таблицы
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => void signOut()}>
+            <LogOut className="w-4 h-4" aria-hidden="true" />
+            Выйти
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

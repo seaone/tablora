@@ -7,12 +7,26 @@ import type {
   TableJudge,
   TableAccessRole,
   ColumnType,
+  MyTableSummary,
 } from "./table";
 
 const baseUrl = APP_CONFIG.apiUrl;
 
 /** All requests send the session cookie so authenticated calls work cross-origin. */
 const jsonHeaders = { "Content-Type": "application/json" };
+
+/** Tables the signed-in user owns or is authorized to judge. */
+export async function fetchMyTables(): Promise<MyTableSummary[]> {
+  const res = await fetch(`${baseUrl}/api/tables`, {
+    cache: "no-store",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to load tables: ${res.statusText}`);
+  }
+  const data = (await res.json()) as { tables: MyTableSummary[] };
+  return data.tables;
+}
 
 export async function fetchTable(id: string): Promise<FullTableData> {
   const res = await fetch(`${baseUrl}/api/tables/${id}`, {

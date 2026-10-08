@@ -54,3 +54,16 @@ export interface CreateTablePayload {
   columns: Array<{ name: string; type: ColumnType }>;
   participants: Array<{ name: string; description?: string }>;
 }
+
+/** A table as it appears in a signed-in user's directory, with their role for it. */
+export interface MyTableSummary {
+  id: string;
+  title: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  role: Extract<TableAccessRole, "owner" | "judge">;
+}
+
+/** Role filter for the directory list. */
+export type MyTablesRoleFilter = "all" | "owner" | "judge";

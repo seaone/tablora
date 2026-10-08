@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import { eq, asc, and } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
-import { SSE_EVENTS, type ColumnType } from '@tablora/shared'
+import { SSE_EVENTS, type ColumnType, type TableAccessRole } from '@tablora/shared'
 import { db } from '../db/index.js'
 import { tables, columns, participants, scores, tableJudges } from '../db/schema.js'
 import { sseHub } from '../realtime/sse-hub.js'
@@ -46,6 +46,58 @@ export async function getFullTable(tableId: string) {
     participants: tableParticipants,
     scores: tableScores,
   }
+}
+
+/** A table as it appears in a user's directory, labeled with that user's role. */
+export interface MyTableSummary {
+  id: string
+  title: string
+  description: string | null
+  createdAt: Date
+  updatedAt: Date
+  role: Extract<TableAccessRole, 'owner' | 'judge'>
+}
+
+function toMyTableSummary(
+  table: typeof tables.$inferSelect,
+  role: MyTableSummary['role'],
+): MyTableSummary {
+  return {
+    id: table.id,
+    title: table.title,
+    description: table.description,
+    createdAt: table.createdAt,
+    updatedAt: table.updatedAt,
+    role,
+  }
+}
+
+/**
+ * Returns the tables a user owns plus the tables they are authorized to judge,
+ * merged by table id with owner taking precedence, most recently updated first.
+ */
+export async function listTablesForUser(user: {
+  id: string
+  email: string
+}): Promise<MyTableSummary[]> {
+  const owned = await db.select().from(tables).where(eq(tables.ownerId, user.id))
+
+  const judged = await db
+    .select({ table: tables })
+    .from(tableJudges)
+    .innerJoin(tables, eq(tableJudges.tableId, tables.id))
+    .where(eq(tableJudges.email, user.email.toLowerCase()))
+
+  const byId = new Map<string, MyTableSummary>()
+  for (const { table } of judged) {
+    byId.set(table.id, toMyTableSummary(table, 'judge'))
+  }
+  // Owner precedence: a table the caller both owns and judges appears once as owner.
+  for (const table of owned) {
+    byId.set(table.id, toMyTableSummary(table, 'owner'))
+  }
+
+  return [...byId.values()].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
 }
 
 export const tableRoutes: FastifyPluginAsync = async (fastify) => {
@@ -110,6 +162,12 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
 
     const fullTable = await getFullTable(tableId)
     return reply.status(201).send(fullTable)
+  })
+
+  // List the caller's tables (owned or judged; authenticated)
+  fastify.get('/api/tables', { preHandler: requireUser }, async (request) => {
+    const tables = await listTablesForUser(request.authUser!)
+    return { tables }
   })
 
   // Get full table (public: spectators view anonymously)
