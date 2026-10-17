@@ -12,7 +12,7 @@ export const ConnectionStatusBadge: React.FC<ConnectionStatusBadgeProps> = ({ st
     return (
       <Badge variant="secondary">
         <Radio aria-hidden="true" />
-        <span>Онлайн</span>
+        <span className="sr-only sm:not-sr-only">Онлайн</span>
       </Badge>
     );
   }
@@ -20,7 +20,7 @@ export const ConnectionStatusBadge: React.FC<ConnectionStatusBadgeProps> = ({ st
   return (
     <Badge variant="destructive">
       <RadioOff aria-hidden="true" />
-      <span>{status === "connecting" ? "Подключение..." : "Переподключение..."}</span>
+      <span className="sr-only sm:not-sr-only">{status === "connecting" ? "Подключение..." : "Переподключение..."}</span>
     </Badge>
   );
 };

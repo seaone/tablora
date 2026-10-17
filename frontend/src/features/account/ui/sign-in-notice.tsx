@@ -12,14 +12,14 @@ interface Props {
 }
 
 function SignInNotice({
-  title = "Нужно войти",
+  title = "Войдите",
   description = "Войдите через один из сервисов, чтобы продолжить.",
 }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   return (
-    <Card className="max-w-lg mx-auto my-8">
+    <Card className="max-w-lg mx-auto">
       <CardHeader>
         <CardTitle className="text-lg font-bold">{title}</CardTitle>
         <CardDescription className="text-sm leading-relaxed">{description}</CardDescription>

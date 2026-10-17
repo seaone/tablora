@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Edit3, ListChecks } from "lucide-react";
+import { Edit3, Eye, ListChecks } from "lucide-react";
 import { DeleteTable } from "@/features/delete-table";
 import type { MyTableSummary, MyTablesRoleFilter } from "@/shared/api";
+import { ACTION_LABELS } from "@/shared/config";
 import {
+  ActionTooltip,
   Badge,
   buttonVariants,
   Card,
@@ -112,13 +114,28 @@ function MyTablesList({ tables, onDeleteTable }: Props) {
                   <ItemDescription>{formatCreatedAt(table.createdAt)}</ItemDescription>
                 </ItemContent>
                 <ItemActions>
-                  <Link
-                    href={`/t/${table.id}/edit`}
-                    title="Редактировать"
-                    className={buttonVariants({ variant: "ghost", size: "icon" })}
-                  >
-                    <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
-                  </Link>
+                  <ActionTooltip
+                    label={ACTION_LABELS.viewTable}
+                    trigger={
+                      <Link
+                        href={`/t/${table.id}/`}
+                        className={buttonVariants({ variant: "ghost", size: "icon" })}
+                      >
+                        <Eye className="w-4 h-4" aria-hidden="true" />
+                      </Link>
+                    }
+                  />
+                  <ActionTooltip
+                    label={ACTION_LABELS.editTable}
+                    trigger={
+                      <Link
+                        href={`/t/${table.id}/edit`}
+                        className={buttonVariants({ variant: "ghost", size: "icon" })}
+                      >
+                        <Edit3 className="w-4 h-4" aria-hidden="true" />
+                      </Link>
+                    }
+                  />
                   {table.role === "owner" ? (
                     <DeleteTable
                       onConfirm={() => onDeleteTable(table.id)}

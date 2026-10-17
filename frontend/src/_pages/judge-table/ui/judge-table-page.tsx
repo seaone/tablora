@@ -30,7 +30,7 @@ interface Props {
 }
 
 function JudgeTablePage({ tableId }: Props) {
-  const { user, authLoading, loading: accessLoading, isEditor } = useJudgeAccess(tableId);
+  const { user, authLoading, loading: accessLoading, isEditor, role } = useJudgeAccess(tableId);
   const {
     table,
     status,
@@ -39,114 +39,106 @@ function JudgeTablePage({ tableId }: Props) {
     filteredParticipants,
     handleAddColumn,
     handleUpdateColumn,
+    handleDeleteTable,
     handleAddParticipant,
     handleUpdateParticipant,
     handleDeleteColumn,
     handleDeleteParticipant,
   } = useJudgeTable(tableId);
 
-  if (authLoading || accessLoading) {
-    return <Loader label="Проверка доступа..." />;
-  }
-
-  if (!user) {
-    return (
-      <Page>
-        <Main className="flex-1">
-          <SignInNotice
-            title="Судейская панель"
-            description="Войдите через Яндекс ID, чтобы вносить и изменять результаты."
-          />
-        </Main>
-      </Page>
-    );
-  }
-
-  if (!isEditor) {
-    return (
-      <Page>
-        <Main className="flex-1">
-          <AccessDeniedNotice />
-        </Main>
-      </Page>
-    );
-  }
-
-  if (!table) {
-    return <Loader label="Загрузка таблицы..." />;
-  }
-
   return (
     <Page>
       {/* Sticky Mobile/Desktop Header matching Stitch judge_mobile_list */}
-      <JudgeTableHeader tableId={tableId} tableTitle={table.title} status={status} />
+      <JudgeTableHeader
+        tableId={tableId}
+        status={status}
+        isOwner={role === "owner"}
+        onDeleteTable={handleDeleteTable}
+      />
 
       {/* Main Container */}
-      <Main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <section className="lg:col-span-8 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
-                {table.title}
-              </CardTitle>
-              {table.description && (
-                <CardDescription className="text-xs sm:text-sm leading-relaxed">
-                  {table.description}
-                </CardDescription>
-              )}
-            </CardHeader>
-          </Card>
+      <Main className="flex-1">
+        {(authLoading || accessLoading) && <Loader label="Проверка доступа..." />}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-bold">Участники и команды</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Search */}
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Поиск по имени участника..."
-              />
-
-              {/* Participant List matching Stitch judge_mobile_list */}
-              {filteredParticipants.length === 0 ? (
-                <div className="p-8 text-center rounded-lg bg-card border border-border text-sm text-muted-foreground">
-                  {searchQuery ? "Ничего не найдено" : "Нет участников в таблице"}
-                </div>
-              ) : (
-                <ItemGroup>
-                  {filteredParticipants.map((participant, index) => (
-                    <JudgeParticipantCard
-                      key={participant.id}
-                      participant={participant}
-                      index={index}
-                      columns={table.columns}
-                      scores={table.scores}
-                      onEditParticipant={handleUpdateParticipant}
-                      onDeleteParticipant={handleDeleteParticipant}
-                    />
-                  ))}
-                </ItemGroup>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
-        <section className="lg:col-span-4 space-y-4">
-          {/* Quick Actions Bar (+ Участник, + Столбец) */}
-          <JudgeQuickActions>
-            <AddParticipant onSubmit={handleAddParticipant} />
-            <AddColumn onSubmit={handleAddColumn} />
-          </JudgeQuickActions>
-
-          {/* Columns management (edit + delete) */}
-          <JudgeColumnsBar
-            columns={table.columns}
-            onEditColumn={handleUpdateColumn}
-            onDeleteColumn={handleDeleteColumn}
+        {!(authLoading || accessLoading) && !user && (
+          <SignInNotice
+            title="Редактирование таблицы"
+            description="Войдите, чтобы вносить и изменять результаты."
           />
-        </section>
+        )}
+
+        {user && !isEditor && <AccessDeniedNotice />}
+
+        {isEditor && !table && <Loader label="Загрузка таблицы..." />}
+
+        {isEditor && table && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <section className="lg:col-span-8 space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+                    {table.title}
+                  </CardTitle>
+                  {table.description && (
+                    <CardDescription className="text-xs sm:text-sm leading-relaxed">
+                      {table.description}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-bold">Участники и команды</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {/* Search */}
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Поиск по имени участника..."
+                  />
+
+                  {/* Participant List matching Stitch judge_mobile_list */}
+                  {filteredParticipants.length === 0 ? (
+                    <div className="p-8 text-center rounded-lg bg-card border border-border text-sm text-muted-foreground">
+                      {searchQuery ? "Ничего не найдено" : "Нет участников в таблице"}
+                    </div>
+                  ) : (
+                    <ItemGroup>
+                      {filteredParticipants.map((participant, index) => (
+                        <JudgeParticipantCard
+                          key={participant.id}
+                          participant={participant}
+                          index={index}
+                          columns={table.columns}
+                          scores={table.scores}
+                          onEditParticipant={handleUpdateParticipant}
+                          onDeleteParticipant={handleDeleteParticipant}
+                        />
+                      ))}
+                    </ItemGroup>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+
+            <section className="lg:col-span-4 space-y-4">
+              {/* Quick Actions Bar (+ Участник, + Столбец) */}
+              <JudgeQuickActions>
+                <AddParticipant onSubmit={handleAddParticipant} />
+                <AddColumn onSubmit={handleAddColumn} />
+              </JudgeQuickActions>
+
+              {/* Columns management (edit + delete) */}
+              <JudgeColumnsBar
+                columns={table.columns}
+                onEditColumn={handleUpdateColumn}
+                onDeleteColumn={handleDeleteColumn}
+              />
+            </section>
+          </div>
+        )}
       </Main>
     </Page>
   );

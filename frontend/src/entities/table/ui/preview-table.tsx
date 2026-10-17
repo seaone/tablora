@@ -31,7 +31,7 @@ function PreviewTable({ title, description, columns, participants, limit, classN
     <Card className={className}>
       <CardHeader>
         <div className="flex items-center gap-2 text-muted-foreground text-sm font-semibold">
-          <Eye className="w-4 h-4 text-primary" />
+          <Eye className="w-4 h-4" />
           <span>Превью таблицы</span>
         </div>
       </CardHeader>

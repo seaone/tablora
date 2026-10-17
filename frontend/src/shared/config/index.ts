@@ -1,6 +1,8 @@
 /**
  * Shared application configuration and constants.
  */
+export * from "./labels";
+
 export const APP_CONFIG = {
   name: "Таблора",
   shortName: "Tablora",

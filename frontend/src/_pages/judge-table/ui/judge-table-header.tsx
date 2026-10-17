@@ -3,20 +3,18 @@ import Link from "next/link";
 import { type ConnectionStatus, ConnectionStatusBadge } from "@/entities/table";
 import { AccountControl } from "@/features/account";
 import { DeleteTable } from "@/features/delete-table";
-import { useMediaQuery } from "@/shared/lib";
-import { buttonVariants, Header } from "@/shared/ui";
-import { useJudgeTable } from "../model/use-judge-table";
+import { ACTION_LABELS } from "@/shared/config";
+import { ActionTooltip, Header, buttonVariants } from "@/shared/ui";
 
 interface Props {
   tableId: string;
-  tableTitle: string;
   status: ConnectionStatus;
+  /** Only the owner may delete the table (score-editing spec). */
+  isOwner: boolean;
+  onDeleteTable: () => void | Promise<void>;
 }
 
-function JudgeTableHeader({ tableId, status }: Props) {
-  const { handleDeleteTable } = useJudgeTable(tableId);
-  const isMobile = useMediaQuery("(max-width: 640px)");
-
+function JudgeTableHeader({ tableId, status, isOwner, onDeleteTable }: Props) {
   return (
     <Header
       className="z-50"
@@ -24,21 +22,18 @@ function JudgeTableHeader({ tableId, status }: Props) {
       subtitle={<ConnectionStatusBadge status={status} />}
       rightContent={
         <>
-          <DeleteTable
-            onConfirm={handleDeleteTable}
-            size={isMobile ? "icon" : "default"}
-            withLabel
+          {isOwner && <DeleteTable onConfirm={onDeleteTable} size="icon" />}
+          <ActionTooltip
+            label={ACTION_LABELS.viewTable}
+            trigger={
+              <Link
+                href={`/t/${tableId}`}
+                className={buttonVariants({ variant: "outline", size: "icon" })}
+              >
+                <Eye className="w-4 h-4" aria-hidden="true" />
+              </Link>
+            }
           />
-          <Link
-            href={`/t/${tableId}`}
-            className={buttonVariants({
-              variant: "outline",
-              size: isMobile ? "icon" : "default",
-            })}
-          >
-            <Eye className="w-4 h-4 text-primary" aria-hidden="true" />
-            <span className="hidden sm:inline">Табло</span>
-          </Link>
           <AccountControl />
         </>
       }

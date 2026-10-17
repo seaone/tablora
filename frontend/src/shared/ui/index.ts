@@ -16,4 +16,6 @@ export * from "./page";
 export * from "./qr-code";
 export * from "./select";
 export * from "./separator";
+export * from "./spinner";
 export * from "./textarea";
+export * from "./tooltip";

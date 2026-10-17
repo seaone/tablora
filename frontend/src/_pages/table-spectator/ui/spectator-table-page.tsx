@@ -24,10 +24,6 @@ function SpectatorTablePage({ tableId }: Props) {
     spectatorUrl,
   } = useSpectatorTable(tableId);
 
-  if (!table) {
-    return <Loader label="Загрузка таблицы..." />;
-  }
-
   return (
     <Page>
       {/* Top Header matching Stitch spectator_live */}
@@ -39,17 +35,23 @@ function SpectatorTablePage({ tableId }: Props) {
       />
 
       {/* Main Presentation Grid: 8 cols Standings + 4 cols QR widget */}
-      <Main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <StandingsTable
-          className="lg:col-span-8"
-          table={table}
-          sortedParticipants={sortedParticipants}
-          sortColumnId={sortColumnId}
-          sortDirection={sortDirection}
-          onSort={handleSort}
-        />
+      <Main className="flex-1">
+        {!table && <Loader label="Загрузка таблицы..." />}
 
-        <AudienceQrWidget className="lg:col-span-4" spectatorUrl={spectatorUrl} />
+        {table && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <StandingsTable
+              className="lg:col-span-8"
+              table={table}
+              sortedParticipants={sortedParticipants}
+              sortColumnId={sortColumnId}
+              sortDirection={sortDirection}
+              onSort={handleSort}
+            />
+
+            <AudienceQrWidget className="lg:col-span-4" spectatorUrl={spectatorUrl} />
+          </div>
+        )}
       </Main>
 
       {/* Minimal Footer matching Stitch */}

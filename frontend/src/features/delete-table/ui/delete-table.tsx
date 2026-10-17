@@ -1,26 +1,18 @@
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Button, ConfirmDialog } from "@/shared/ui";
-
-const DELETE_LABEL = "Удалить таблицу";
+import { ACTION_LABELS } from "@/shared/config";
+import { ActionTooltip, Button, ConfirmDialog } from "@/shared/ui";
 
 interface DeleteTableProps {
   /** Injected effect: whatever "deleting the table" means for the consumer. */
   onConfirm: () => void | Promise<void>;
   /** Button variant; defaults to a prominent destructive button. */
   variant?: "destructive" | "ghost";
-  /** Button size; defaults to the labeled button. */
+  /** Button size; defaults to `default`. */
   size?: "default" | "icon";
-  /** Render the label next to the icon (hidden on small screens). */
-  withLabel?: boolean;
 }
 
-function DeleteTable({
-  onConfirm,
-  variant = "destructive",
-  size = "default",
-  withLabel = false,
-}: DeleteTableProps) {
+function DeleteTable({ onConfirm, variant = "destructive", size = "default" }: DeleteTableProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,17 +43,19 @@ function DeleteTable({
 
   return (
     <>
-      <Button
-        type="button"
-        variant={variant}
-        size={size}
-        onClick={() => handleOpenChange(true)}
-        aria-label={DELETE_LABEL}
-      >
-        <Trash2 className="w-4 h-4" aria-hidden="true" />
-        {withLabel ? <span className="hidden sm:inline">{DELETE_LABEL}</span> : null}
-      </Button>
-
+      <ActionTooltip
+        label={ACTION_LABELS.deleteTable}
+        trigger={
+          <Button
+            type="button"
+            variant={variant}
+            size={size}
+            onClick={() => handleOpenChange(true)}
+          >
+            <Trash2 className="w-4 h-4" aria-hidden="true" />
+          </Button>
+        }
+      />
       <ConfirmDialog
         open={isOpen}
         onOpenChange={handleOpenChange}

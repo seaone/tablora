@@ -18,7 +18,7 @@ function MyTablesPage() {
         {authLoading ? (
           <Loader label="Загрузка..." />
         ) : !authed ? (
-          <SignInNotice title="Нужно войти" description="Войдите, чтобы увидеть свои таблицы." />
+          <SignInNotice title="Мои таблицы" description="Войдите, чтобы увидеть свои таблицы." />
         ) : loading ? (
           <Loader label="Загрузка таблиц..." />
         ) : error ? (
