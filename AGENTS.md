@@ -79,7 +79,8 @@ Features are effect-injected: a feature owns the interaction (open/dialog/submit
 
 ### Design system
 
-- UI kit in `src/shared/ui/*` (Button, Input, Card, Item, Badge, Dialog, DropdownMenu, ConfirmDialog, Select, QRCode, Header, Footer).
+- UI kit in `src/shared/ui/*` (Button, Input, Card, Item, Badge, Dialog, DropdownMenu, ConfirmDialog, Select, QRCode, Header, Footer, Loader, Spinner, Tooltip/ActionTooltip). Import it through the `@/shared/ui` barrel; don't deep-import individual files.
+- Repeated action copy lives in `shared/config/labels.ts` (`ACTION_LABELS`) so a control's tooltip and accessible name stay in sync.
 - Tokens live in two places: shadcn HSL variables in `src/_app/styles/globals.css`, and Material-style colors in `tailwind.config.ts` (`surface`, `on-surface`, `primary-fixed`, `outline-variant`, …).
 
 ### Component styling convention
@@ -87,10 +88,13 @@ Features are effect-injected: a feature owns the interaction (open/dialog/submit
 Style `shared/ui` components through their `variant` and `size` props, not `className`:
 
 - `<Button>`: `variant` for color, `size` for height. `className` may only carry **width** utilities (e.g. `w-full`, `w-1/2`).
+- Icon-only controls must have an accessible name. Wrap the trigger in `ActionTooltip` and give it a `label`; pass an explicit `aria-label` on the trigger when it should differ from the tooltip (e.g. the user's name on the account menu).
 
 ### Real-time data flow
 
 `entities/table/model/use-live-table.ts` fetches the table and subscribes to SSE with auto-reconnect; the SSE stream is opened with `withCredentials` so the session cookie is shared. `shared/api` exposes the typed REST client (`fetchTable`, `createTable`, `submitScores`, `addParticipant`, `addColumn`) plus the auth calls (`fetchCurrentUser`, the sign-in URL, `signOut`).
+
+Page-level data hooks (`useJudgeAccess`, `useJudgeTable`) run once in the page; pass their results and effects (e.g. `isOwner`, `onDeleteTable`) into child components rather than re-invoking them, which would duplicate the access request and the SSE subscription.
 
 ## Local Development
 
