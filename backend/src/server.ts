@@ -9,13 +9,9 @@ const start = async () => {
   const app = buildApp()
 
   try {
-    // Ensure DB tables exist on launch
-    try {
-      await ensureTablesExist()
-      app.log.info('Database schema verified / initialized successfully')
-    } catch (dbErr) {
-      app.log.warn({ err: dbErr }, 'Could not initialize DB tables on startup (PostgreSQL might be booting)')
-    }
+    // Fail fast: the restart policy retries, and a healthy container always has a schema.
+    await ensureTablesExist()
+    app.log.info('Database schema verified / initialized successfully')
 
     await app.listen({ port: PORT, host: HOST })
     console.log(`🚀 Tablora backend running on http://${HOST}:${PORT}`)

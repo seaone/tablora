@@ -4,6 +4,44 @@ import { SSE_EVENTS } from '@tablora/shared'
 import { sseHub } from './sse-hub.js'
 import type { FastifyReply } from 'fastify'
 
+test('SSEHub keeps a backed-up client and sends the latest update on drain', () => {
+  const tableId = 'slow-table-123'
+  const messages: string[] = []
+  const drainCallbacks: Array<() => void> = []
+  let blocked = true
+  let ended = false
+
+  const mockReply = {
+    raw: {
+      writeHead: () => {},
+      write: (data: string) => {
+        messages.push(data)
+        return !blocked
+      },
+      once: (event: string, callback: () => void) => {
+        if (event === 'drain') drainCallbacks.push(callback)
+      },
+      on: () => {},
+      end: () => {
+        ended = true
+      },
+    },
+  } as unknown as FastifyReply
+
+  const client = sseHub.subscribe(tableId, mockReply)
+  sseHub.broadcast(tableId, SSE_EVENTS.tableUpdated, { n: 1 })
+  sseHub.broadcast(tableId, SSE_EVENTS.tableUpdated, { n: 2 })
+
+  assert.equal(sseHub.getClientCount(tableId), 1)
+  assert.equal(ended, false)
+
+  blocked = false
+  for (const callback of drainCallbacks) callback()
+
+  assert.ok(messages.some((message) => message.includes('"n":2')))
+  sseHub.unsubscribe(tableId, client)
+})
+
 test('SSEHub subscribes and broadcasts events to clients', async () => {
   const tableId = 'test-table-123'
   const messages: string[] = []
@@ -12,7 +50,8 @@ test('SSEHub subscribes and broadcasts events to clients', async () => {
     raw: {
       writeHead: () => {},
       write: (data: string) => {
-        messages.push(data)
+        messages.push(data);
+        return true;
       },
       on: () => {},
       end: () => {},

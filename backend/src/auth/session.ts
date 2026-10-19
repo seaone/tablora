@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import { eq } from 'drizzle-orm'
+import { eq, lt } from 'drizzle-orm'
 import { db } from '../db/index.js'
 import { sessions } from '../db/schema.js'
 import { SESSION_TTL_SECONDS } from './config.js'
@@ -15,7 +15,10 @@ export async function createSession(
   ttlSeconds: number = SESSION_TTL_SECONDS,
 ): Promise<CreatedSession> {
   const id = nanoid(21)
-  const expiresAt = new Date(Date.now() + ttlSeconds * 1000)
+  const now = Date.now()
+  // Opportunistic cleanup so expired sessions do not accumulate forever.
+  await db.delete(sessions).where(lt(sessions.expiresAt, new Date(now)))
+  const expiresAt = new Date(now + ttlSeconds * 1000)
   await db.insert(sessions).values({ id, userId, expiresAt })
   return { id, expiresAt }
 }

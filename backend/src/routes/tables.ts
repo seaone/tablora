@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
-import { eq, asc, and } from 'drizzle-orm'
+import { eq, asc, and, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
-import { SSE_EVENTS, type ColumnType, type TableAccessRole } from '@tablora/shared'
+import { COLUMN_TYPES, SSE_EVENTS, type ColumnType, type TableAccessRole } from '@tablora/shared'
 import { db } from '../db/index.js'
 import { tables, columns, participants, scores, tableJudges } from '../db/schema.js'
 import { sseHub } from '../realtime/sse-hub.js'
@@ -12,7 +12,31 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 function normalizeEmail(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const email = value.trim().toLowerCase()
-  return EMAIL_PATTERN.test(email) ? email : null
+  return email.length <= 255 && EMAIL_PATTERN.test(email) ? email : null
+}
+
+function isColumnType(value: unknown): value is ColumnType {
+  return typeof value === 'string' && (COLUMN_TYPES as readonly string[]).includes(value)
+}
+
+function isColumnInput(value: unknown): value is { name: string; type: ColumnType } {
+  if (!value || typeof value !== 'object') return false
+  const column = value as { name?: unknown; type?: unknown }
+  return (
+    typeof column.name === 'string' &&
+    column.name.trim().length <= 100 &&
+    isColumnType(column.type)
+  )
+}
+
+function isParticipantInput(value: unknown): value is { name: string; description?: string } {
+  if (!value || typeof value !== 'object') return false
+  const participant = value as { name?: unknown; description?: unknown }
+  return (
+    typeof participant.name === 'string' &&
+    participant.name.trim().length <= 200 &&
+    (participant.description === undefined || typeof participant.description === 'string')
+  )
 }
 
 function corsOriginFor(request: FastifyRequest): string {
@@ -23,22 +47,19 @@ export async function getFullTable(tableId: string) {
   const [table] = await db.select().from(tables).where(eq(tables.id, tableId))
   if (!table) return null
 
-  const tableColumns = await db
-    .select()
-    .from(columns)
-    .where(eq(columns.tableId, tableId))
-    .orderBy(asc(columns.sortOrder), asc(columns.createdAt))
-
-  const tableParticipants = await db
-    .select()
-    .from(participants)
-    .where(eq(participants.tableId, tableId))
-    .orderBy(asc(participants.sortOrder), asc(participants.createdAt))
-
-  const tableScores = await db
-    .select()
-    .from(scores)
-    .where(eq(scores.tableId, tableId))
+  const [tableColumns, tableParticipants, tableScores] = await Promise.all([
+    db
+      .select()
+      .from(columns)
+      .where(eq(columns.tableId, tableId))
+      .orderBy(asc(columns.sortOrder), asc(columns.createdAt), asc(columns.id)),
+    db
+      .select()
+      .from(participants)
+      .where(eq(participants.tableId, tableId))
+      .orderBy(asc(participants.sortOrder), asc(participants.createdAt), asc(participants.id)),
+    db.select().from(scores).where(eq(scores.tableId, tableId)),
+  ])
 
   return {
     ...table,
@@ -114,6 +135,15 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.badRequest('Table title is required')
     }
 
+    const title = body.title.trim()
+    if (title.length > 255) {
+      return reply.badRequest('Table title is too long')
+    }
+
+    if (body.description !== undefined && typeof body.description !== 'string') {
+      return reply.badRequest('Table description must be a string')
+    }
+
     if (!Array.isArray(body.columns)) {
       return reply.badRequest('Table columns are required')
     }
@@ -122,43 +152,56 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.badRequest('Table participants are required')
     }
 
+    const inputColumns = body.columns
+    const inputParticipants = body.participants
+
+    if (!inputColumns.every(isColumnInput)) {
+      return reply.badRequest('Each column needs a name and a supported type')
+    }
+
+    if (!inputParticipants.every(isParticipantInput)) {
+      return reply.badRequest('Each participant needs a name')
+    }
+
     const tableId = nanoid(10)
     const now = new Date()
 
-    await db.insert(tables).values({
-      id: tableId,
-      title: body.title.trim(),
-      description: body.description?.trim() || null,
-      ownerId: request.authUser!.id,
-      createdAt: now,
-      updatedAt: now,
-    })
-
-    for (let i = 0; i < body.columns.length; i++) {
-      const col = body.columns[i]
-      await db.insert(columns).values({
-        id: nanoid(10),
-        tableId,
-        name: col.name.trim() || `Колонка ${i + 1}`,
-        type: col.type || 'number',
-        sortOrder: i,
+    await db.transaction(async (tx) => {
+      await tx.insert(tables).values({
+        id: tableId,
+        title,
+        description: body.description?.trim() || null,
+        ownerId: request.authUser!.id,
         createdAt: now,
+        updatedAt: now,
       })
-    }
 
-    for (let i = 0; i < body.participants.length; i++) {
-      const p = body.participants[i]
-      if (p.name && p.name.trim()) {
-        await db.insert(participants).values({
+      for (let i = 0; i < inputColumns.length; i++) {
+        const col = inputColumns[i]
+        await tx.insert(columns).values({
           id: nanoid(10),
           tableId,
-          name: p.name.trim(),
-          description: p.description?.trim() || null,
+          name: col.name.trim() || `Колонка ${i + 1}`,
+          type: col.type,
           sortOrder: i,
           createdAt: now,
         })
       }
-    }
+
+      for (let i = 0; i < inputParticipants.length; i++) {
+        const p = inputParticipants[i]
+        if (p.name.trim()) {
+          await tx.insert(participants).values({
+            id: nanoid(10),
+            tableId,
+            name: p.name.trim(),
+            description: p.description?.trim() || null,
+            sortOrder: i,
+            createdAt: now,
+          })
+        }
+      }
+    })
 
     const fullTable = await getFullTable(tableId)
     return reply.status(201).send(fullTable)
@@ -198,12 +241,16 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.notFound('Table not found')
     }
 
-    const client = sseHub.subscribe(id, reply, corsOriginFor(request))
-    // Send initial snapshot
-    client.reply.raw.write(`event: ${SSE_EVENTS.tableSnapshot}\ndata: ${JSON.stringify(fullTable)}\n\n`)
+    if (sseHub.isFull(id)) {
+      return reply.code(503).send({ error: 'Too many connections for this table' })
+    }
 
-    // Keep open (Fastify shouldn't end reply)
-    await new Promise(() => {})
+    // We own the raw response from here; Fastify must not end it.
+    reply.hijack()
+
+    const client = sseHub.subscribe(id, reply, corsOriginFor(request))
+    // Send initial snapshot through the hub so backpressure is tracked.
+    sseHub.writeTo(id, client, `event: ${SSE_EVENTS.tableSnapshot}\ndata: ${JSON.stringify(fullTable)}\n\n`)
   })
 
   // Add participant (owner or authorized judge)
@@ -218,9 +265,12 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.badRequest('Participant name is required')
       }
 
-      const table = await db.select().from(tables).where(eq(tables.id, tableId))
-      if (!table.length) {
-        return reply.notFound('Table not found')
+      const name = body.name.trim()
+      if (name.length > 200) {
+        return reply.badRequest('Participant name is too long')
+      }
+      if (body.description !== undefined && typeof body.description !== 'string') {
+        return reply.badRequest('Participant description must be a string')
       }
 
       const currentParticipants = await db
@@ -229,17 +279,22 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
         .where(eq(participants.tableId, tableId))
 
       const newId = nanoid(10)
+      const now = new Date()
+      const nextSortOrder =
+        currentParticipants.reduce((max, participant) => Math.max(max, participant.sortOrder), -1) + 1
       const [newParticipant] = await db
         .insert(participants)
         .values({
           id: newId,
           tableId,
-          name: body.name.trim(),
+          name,
           description: body.description?.trim() || null,
-          sortOrder: currentParticipants.length,
-          createdAt: new Date(),
+          sortOrder: nextSortOrder,
+          createdAt: now,
         })
         .returning()
+
+      await db.update(tables).set({ updatedAt: sql`now()` }).where(eq(tables.id, tableId))
 
       const fullTable = await getFullTable(tableId)
       sseHub.broadcast(tableId, SSE_EVENTS.tableUpdated, fullTable)
@@ -260,6 +315,14 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.badRequest('Participant name is required')
       }
 
+      const name = body.name.trim()
+      if (name.length > 200) {
+        return reply.badRequest('Participant name is too long')
+      }
+      if (body.description !== undefined && typeof body.description !== 'string') {
+        return reply.badRequest('Participant description must be a string')
+      }
+
       const [participant] = await db
         .select()
         .from(participants)
@@ -272,13 +335,13 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
       const [updatedParticipant] = await db
         .update(participants)
         .set({
-          name: body.name.trim(),
+          name,
           description: body.description?.trim() || null,
         })
         .where(eq(participants.id, participantId))
         .returning()
 
-      await db.update(tables).set({ updatedAt: new Date() }).where(eq(tables.id, tableId))
+      await db.update(tables).set({ updatedAt: sql`now()` }).where(eq(tables.id, tableId))
 
       const fullTable = await getFullTable(tableId)
       sseHub.broadcast(tableId, SSE_EVENTS.tableUpdated, fullTable)
@@ -299,9 +362,12 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.badRequest('Column name is required')
       }
 
-      const table = await db.select().from(tables).where(eq(tables.id, tableId))
-      if (!table.length) {
-        return reply.notFound('Table not found')
+      const name = body.name.trim()
+      if (name.length > 100) {
+        return reply.badRequest('Column name is too long')
+      }
+      if (!isColumnType(body.type)) {
+        return reply.badRequest('Column type must be number, text, or time')
       }
 
       const currentCols = await db
@@ -310,17 +376,22 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
         .where(eq(columns.tableId, tableId))
 
       const newId = nanoid(10)
+      const now = new Date()
+      const nextSortOrder =
+        currentCols.reduce((max, column) => Math.max(max, column.sortOrder), -1) + 1
       const [newCol] = await db
         .insert(columns)
         .values({
           id: newId,
           tableId,
-          name: body.name.trim(),
-          type: body.type || 'number',
-          sortOrder: currentCols.length,
-          createdAt: new Date(),
+          name,
+          type: body.type,
+          sortOrder: nextSortOrder,
+          createdAt: now,
         })
         .returning()
+
+      await db.update(tables).set({ updatedAt: sql`now()` }).where(eq(tables.id, tableId))
 
       const fullTable = await getFullTable(tableId)
       sseHub.broadcast(tableId, SSE_EVENTS.tableUpdated, fullTable)
@@ -341,6 +412,14 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.badRequest('Column name is required')
       }
 
+      const name = body.name.trim()
+      if (name.length > 100) {
+        return reply.badRequest('Column name is too long')
+      }
+      if (body.type !== undefined && !isColumnType(body.type)) {
+        return reply.badRequest('Column type must be number, text, or time')
+      }
+
       const [column] = await db
         .select()
         .from(columns)
@@ -353,13 +432,13 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
       const [updatedCol] = await db
         .update(columns)
         .set({
-          name: body.name.trim(),
+          name,
           type: body.type || column.type,
         })
         .where(eq(columns.id, columnId))
         .returning()
 
-      await db.update(tables).set({ updatedAt: new Date() }).where(eq(tables.id, tableId))
+      await db.update(tables).set({ updatedAt: sql`now()` }).where(eq(tables.id, tableId))
 
       const fullTable = await getFullTable(tableId)
       sseHub.broadcast(tableId, SSE_EVENTS.tableUpdated, fullTable)
@@ -385,36 +464,41 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.notFound('Participant not found')
       }
 
-      const scoresObj = body?.scores || {}
-      const now = new Date()
-
-      for (const [columnId, rawValue] of Object.entries(scoresObj)) {
-        const valStr = rawValue !== undefined && rawValue !== null ? String(rawValue).trim() : ''
-        const existing = await db
-          .select()
-          .from(scores)
-          .where(eq(scores.participantId, participantId))
-
-        const existingScore = existing.find((s) => s.columnId === columnId)
-
-        if (existingScore) {
-          await db
-            .update(scores)
-            .set({ value: valStr, updatedAt: now })
-            .where(eq(scores.id, existingScore.id))
-        } else {
-          await db.insert(scores).values({
-            id: nanoid(10),
-            tableId,
-            participantId,
-            columnId,
-            value: valStr,
-            updatedAt: now,
-          })
-        }
+      if (!body?.scores || typeof body.scores !== 'object' || Array.isArray(body.scores)) {
+        return reply.badRequest('A scores object is required')
       }
 
-      await db.update(tables).set({ updatedAt: now }).where(eq(tables.id, tableId))
+      const entries = Object.entries(body.scores)
+      if (entries.some(([, value]) => typeof value !== 'string' && !Number.isFinite(value))) {
+        return reply.badRequest('Score values must be strings or finite numbers')
+      }
+
+      const tableColumns = await db
+        .select({ id: columns.id })
+        .from(columns)
+        .where(eq(columns.tableId, tableId))
+      const columnIds = new Set(tableColumns.map((column) => column.id))
+
+      if (entries.some(([columnId]) => !columnIds.has(columnId))) {
+        return reply.badRequest('Score column does not belong to this table')
+      }
+
+      const now = new Date()
+
+      await db.transaction(async (tx) => {
+        for (const [columnId, rawValue] of entries) {
+          const value = String(rawValue).trim()
+          await tx
+            .insert(scores)
+            .values({ id: nanoid(10), tableId, participantId, columnId, value, updatedAt: now })
+            .onConflictDoUpdate({
+              target: [scores.participantId, scores.columnId],
+              set: { value, updatedAt: now },
+            })
+        }
+
+        await tx.update(tables).set({ updatedAt: sql`now()` }).where(eq(tables.id, tableId))
+      })
 
       const fullTable = await getFullTable(tableId)
       sseHub.broadcast(tableId, SSE_EVENTS.tableUpdated, fullTable)
@@ -430,9 +514,16 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { id: tableId, participantId } = request.params as { id: string; participantId: string }
 
-      await db
+      const [deleted] = await db
         .delete(participants)
-        .where(eq(participants.id, participantId))
+        .where(and(eq(participants.id, participantId), eq(participants.tableId, tableId)))
+        .returning({ id: participants.id })
+
+      if (!deleted) {
+        return reply.notFound('Participant not found')
+      }
+
+      await db.update(tables).set({ updatedAt: sql`now()` }).where(eq(tables.id, tableId))
 
       const fullTable = await getFullTable(tableId)
       if (fullTable) {
@@ -450,9 +541,16 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { id: tableId, columnId } = request.params as { id: string; columnId: string }
 
-      await db
+      const [deleted] = await db
         .delete(columns)
-        .where(eq(columns.id, columnId))
+        .where(and(eq(columns.id, columnId), eq(columns.tableId, tableId)))
+        .returning({ id: columns.id })
+
+      if (!deleted) {
+        return reply.notFound('Column not found')
+      }
+
+      await db.update(tables).set({ updatedAt: sql`now()` }).where(eq(tables.id, tableId))
 
       const fullTable = await getFullTable(tableId)
       if (fullTable) {
@@ -491,21 +589,26 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.badRequest('A valid email is required')
       }
 
+      const [created] = await db
+        .insert(tableJudges)
+        .values({ id: nanoid(10), tableId, email, createdAt: new Date() })
+        .onConflictDoNothing()
+        .returning()
+
+      if (created) {
+        return reply.status(201).send({ judge: created, created: true })
+      }
+
       const [existing] = await db
         .select()
         .from(tableJudges)
         .where(and(eq(tableJudges.tableId, tableId), eq(tableJudges.email, email)))
 
-      if (existing) {
-        return reply.status(200).send({ judge: existing, created: false })
+      if (!existing) {
+        return reply.code(409).send({ error: 'Judge was removed concurrently' })
       }
 
-      const [judge] = await db
-        .insert(tableJudges)
-        .values({ id: nanoid(10), tableId, email, createdAt: new Date() })
-        .returning()
-
-      return reply.status(201).send({ judge, created: true })
+      return reply.status(200).send({ judge: existing, created: false })
     },
   )
 
@@ -540,6 +643,9 @@ export const tableRoutes: FastifyPluginAsync = async (fastify) => {
       await db
         .delete(tables)
         .where(eq(tables.id, tableId))
+
+      sseHub.broadcast(tableId, SSE_EVENTS.tableDeleted, { tableId })
+      sseHub.closeTable(tableId)
 
       return reply.send({ success: true })
     },

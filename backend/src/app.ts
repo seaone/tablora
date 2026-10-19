@@ -8,9 +8,10 @@ import { tableRoutes } from './routes/tables.js'
 import { authRoutes } from './routes/auth.js'
 import { authConfig, SESSION_TTL_SECONDS } from './auth/config.js'
 import { resolveUser } from './auth/resolve-user.js'
+import { sql } from './db/index.js'
 
 export function buildApp(opts = {}) {
-  const isTest = process.env.NODE_ENV === 'test'
+  const isTest = process.env.NODE_ENV === 'test' || Boolean(process.env.NODE_TEST_CONTEXT)
   const app = Fastify({
     logger: isTest ? false : { level: process.env.LOG_LEVEL || 'info' },
     ...opts,
@@ -57,8 +58,14 @@ export function buildApp(opts = {}) {
   app.decorateRequest('authUser', null)
   app.addHook('onRequest', resolveUser)
 
-  app.get('/health', async () => {
-    return { status: 'ok', timestamp: new Date().toISOString() }
+  app.get('/health', async (request, reply) => {
+    try {
+      await sql`SELECT 1`
+      return { status: 'ok', timestamp: new Date().toISOString() }
+    } catch (err) {
+      request.log.error({ err }, 'Health check failed')
+      return reply.code(503).send({ status: 'error' })
+    }
   })
 
   app.register(authRoutes)

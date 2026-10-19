@@ -9,6 +9,8 @@ export const SSE_EVENTS = {
   tableSnapshot: "table_snapshot",
   /** Full-table update broadcast after any mutation. */
   tableUpdated: "table_updated",
+  /** Sent when the table is deleted; clients should stop reconnecting. */
+  tableDeleted: "table_deleted",
 } as const;
 
 export type SSEEventName = (typeof SSE_EVENTS)[keyof typeof SSE_EVENTS];

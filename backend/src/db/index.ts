@@ -91,6 +91,11 @@ export async function ensureTablesExist() {
     );
   `
 
+  // Older databases predate the description field.
+  await sql`
+    ALTER TABLE participants ADD COLUMN IF NOT EXISTS description TEXT;
+  `
+
   await sql`
     CREATE INDEX IF NOT EXISTS participants_table_id_idx ON participants(table_id);
   `
@@ -125,6 +130,10 @@ export async function ensureTablesExist() {
 
   await sql`
     CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON sessions(user_id);
+  `
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions(expires_at);
   `
 
   await sql`

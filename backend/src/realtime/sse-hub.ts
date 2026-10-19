@@ -4,9 +4,15 @@ import { SSE_EVENTS, type SSEEventName } from '@tablora/shared'
 interface SSEClient {
   id: string
   reply: FastifyReply
+  busy: boolean
+  pending: string | null
 }
 
+// One slot per open spectator page; 500 covers a large hall while still bounding memory.
+const MAX_CLIENTS_PER_TABLE = 500
+
 class SSEHub {
+  // shortcut: live subscriptions are per process; a second backend replica needs a shared bus.
   private tables: Map<string, Set<SSEClient>> = new Map()
   private pingInterval: NodeJS.Timeout | null = null
 
@@ -18,16 +24,41 @@ class SSEHub {
     this.pingInterval = setInterval(() => {
       for (const [tableId, clients] of this.tables.entries()) {
         for (const client of clients) {
-          try {
-            client.reply.raw.write(': ping\n\n')
-          } catch (err) {
-            this.unsubscribe(tableId, client)
-          }
+          this.writeTo(tableId, client, ': ping\n\n', false)
         }
       }
     }, 20000)
     if (this.pingInterval.unref) {
       this.pingInterval.unref()
+    }
+  }
+
+  /**
+   * Writes to one client without ending a healthy but backed-up socket.
+   * shortcut: keep only the latest payload while a client is backed up;
+   * upgrade to a queue if intermediate updates must not be coalesced.
+   */
+  public writeTo(tableId: string, client: SSEClient, payload: string, queue = true) {
+    if (client.busy) {
+      if (queue) client.pending = payload
+      return
+    }
+
+    try {
+      if (client.reply.raw.write(payload)) return
+
+      client.busy = true
+      client.pending = null
+      client.reply.raw.once('drain', () => {
+        client.busy = false
+        const next = client.pending
+        client.pending = null
+        if (next && this.tables.get(tableId)?.has(client)) {
+          this.writeTo(tableId, client, next)
+        }
+      })
+    } catch {
+      this.unsubscribe(tableId, client)
     }
   }
 
@@ -46,6 +77,8 @@ class SSEHub {
     const client: SSEClient = {
       id: Math.random().toString(36).substring(2, 10),
       reply,
+      busy: false,
+      pending: null,
     }
 
     if (!this.tables.has(tableId)) {
@@ -53,8 +86,8 @@ class SSEHub {
     }
     this.tables.get(tableId)!.add(client)
 
-    // Handshake
-    client.reply.raw.write(`event: ${SSE_EVENTS.connected}\ndata: ${JSON.stringify({ tableId, clientId: client.id })}\n\n`)
+    // Handshake. Goes through writeTo so a backed-up client is tracked.
+    this.writeTo(tableId, client, `event: ${SSE_EVENTS.connected}\ndata: ${JSON.stringify({ tableId, clientId: client.id })}\n\n`)
 
     reply.raw.on('close', () => {
       this.unsubscribe(tableId, client)
@@ -79,16 +112,31 @@ class SSEHub {
 
     const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
     for (const client of clients) {
+      this.writeTo(tableId, client, payload)
+    }
+  }
+
+  /** Ends every stream for a table, e.g. after it has been deleted. */
+  public closeTable(tableId: string) {
+    const clients = this.tables.get(tableId)
+    if (!clients) return
+    for (const client of clients) {
       try {
-        client.reply.raw.write(payload)
-      } catch (err) {
-        this.unsubscribe(tableId, client)
+        client.reply.raw.end()
+      } catch {
+        // ignore
       }
     }
+    this.tables.delete(tableId)
   }
 
   public getClientCount(tableId: string): number {
     return this.tables.get(tableId)?.size ?? 0
+  }
+
+  /** True when a table already has the maximum number of live streams. */
+  public isFull(tableId: string): boolean {
+    return this.getClientCount(tableId) >= MAX_CLIENTS_PER_TABLE
   }
 
   public destroy() {

@@ -94,6 +94,7 @@ export const sessions = pgTable('sessions', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index('sessions_user_id_idx').on(table.userId),
+  index('sessions_expires_at_idx').on(table.expiresAt),
 ])
 
 /** A judge authorized by a table's owner, matched by the judge's Yandex email. */

@@ -78,13 +78,31 @@ export async function upsertUserFromYandex(profile: YandexProfile): Promise<User
     .values({ id: userId, email: profile.email, displayName: profile.displayName })
     .returning()
 
-  await db.insert(identities).values({
-    id: nanoid(21),
-    userId,
-    provider: YANDEX_PROVIDER,
-    providerUserId: profile.providerUserId,
-    email: profile.email,
-  })
+  const [createdIdentity] = await db
+    .insert(identities)
+    .values({
+      id: nanoid(21),
+      userId,
+      provider: YANDEX_PROVIDER,
+      providerUserId: profile.providerUserId,
+      email: profile.email,
+    })
+    .onConflictDoNothing()
+    .returning()
 
-  return user
+  if (createdIdentity) return user
+
+  // A concurrent first sign-in won the identity; discard the extra user.
+  await db.delete(users).where(eq(users.id, userId))
+  const [winner] = await db
+    .select()
+    .from(identities)
+    .where(
+      and(
+        eq(identities.provider, YANDEX_PROVIDER),
+        eq(identities.providerUserId, profile.providerUserId),
+      ),
+    )
+  const [winnerUser] = await db.select().from(users).where(eq(users.id, winner.userId))
+  return winnerUser
 }

@@ -21,7 +21,7 @@ export async function getTableAccess(
   if (!table) return null
 
   if (user && table.ownerId && table.ownerId === user.id) {
-    return { role: 'owner', ownerId: table.ownerId }
+    return { role: 'owner' }
   }
 
   if (user) {
@@ -31,10 +31,10 @@ export async function getTableAccess(
       .where(
         and(eq(tableJudges.tableId, tableId), eq(tableJudges.email, user.email.toLowerCase())),
       )
-    if (judge) return { role: 'judge', ownerId: table.ownerId }
+    if (judge) return { role: 'judge' }
   }
 
-  return { role: 'viewer', ownerId: table.ownerId }
+  return { role: 'viewer' }
 }
 
 /** Rejects anonymous requests. Used by routes that only need a signed-in user. */
@@ -67,8 +67,6 @@ export async function requireTableMutator(
     await reply.code(403).send({ error: 'Forbidden' })
     return
   }
-
-  request.tableAccess = access
 }
 
 /** Allows only the table's owner; rejects everyone else. */
@@ -91,6 +89,4 @@ export async function requireTableOwner(
     await reply.code(403).send({ error: 'Forbidden' })
     return
   }
-
-  request.tableAccess = access
 }

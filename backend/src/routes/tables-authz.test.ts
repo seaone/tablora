@@ -132,6 +132,44 @@ test('mutations are rejected for a signed-in non-judge and for anonymous callers
   assert.equal(anonymous.statusCode, 401)
 })
 
+test('participant and column deletes are scoped to the table in the URL', async () => {
+  const tableA = await createTable(ownerCookies, 'Своя')
+  const tableB = await createTable(judgeCookies, 'Чужая')
+
+  const readTable = async (id: string) =>
+    JSON.parse((await app.inject({ method: 'GET', url: `/api/tables/${id}` })).payload)
+
+  const a = await readTable(tableA)
+  const b = await readTable(tableB)
+
+  const deleteParticipant = await app.inject({
+    method: 'DELETE',
+    url: `/api/tables/${tableA}/participants/${b.participants[0].id}`,
+    cookies: ownerCookies,
+  })
+  assert.equal(deleteParticipant.statusCode, 404)
+  assert.equal((await readTable(tableB)).participants.length, b.participants.length)
+
+  const deleteColumn = await app.inject({
+    method: 'DELETE',
+    url: `/api/tables/${tableA}/columns/${b.columns[0].id}`,
+    cookies: ownerCookies,
+  })
+  assert.equal(deleteColumn.statusCode, 404)
+  assert.equal((await readTable(tableB)).columns.length, b.columns.length)
+
+  const foreignColumnScore = await app.inject({
+    method: 'PUT',
+    url: `/api/tables/${tableA}/participants/${a.participants[0].id}/scores`,
+    payload: { scores: { [b.columns[0].id]: '5' } },
+    cookies: ownerCookies,
+  })
+  assert.equal(foreignColumnScore.statusCode, 400)
+
+  await db.delete(tables).where(eq(tables.id, tableA))
+  await db.delete(tables).where(eq(tables.id, tableB))
+})
+
 test('judge management is owner-only and idempotent', async () => {
   const list = await app.inject({ method: 'GET', url: `/api/tables/${tableId}/judges`, cookies: ownerCookies })
   assert.equal(list.statusCode, 200)

@@ -8,6 +8,7 @@ import { createTestUser, sessionCookies } from '../test-utils/auth.js'
 import { AUTH_COOKIE_NAME, authConfig } from '../auth/config.js'
 import { createSession } from '../auth/session.js'
 import type { SessionTokenPayload } from '../auth/resolve-user.js'
+import { sanitizeReturnTo } from '../routes/auth.js'
 
 let app: ReturnType<typeof buildApp>
 
@@ -161,4 +162,13 @@ test('an expired session reads as signed out', async () => {
   assert.equal(JSON.parse(me.payload).user, null)
 
   await db.delete(users).where(eq(users.id, user.id))
+})
+
+test('sanitizeReturnTo accepts local paths and rejects external redirects', () => {
+  assert.equal(sanitizeReturnTo('/t/abc'), '/t/abc')
+  assert.equal(sanitizeReturnTo('/'), '/')
+  assert.equal(sanitizeReturnTo('//evil.example'), null)
+  assert.equal(sanitizeReturnTo('https://evil.example'), null)
+  assert.equal(sanitizeReturnTo(undefined), null)
+  assert.equal(sanitizeReturnTo(42), null)
 })
