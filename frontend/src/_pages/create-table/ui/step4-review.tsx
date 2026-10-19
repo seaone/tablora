@@ -1,4 +1,3 @@
-import { Sparkles } from "lucide-react";
 import { CardContent, CardFooter, CardHeader, CardTitle } from "@/shared/ui";
 import type { CreateTableFormValues } from "../model/create-table";
 import { WizardNavigation } from "./wizard-navigation";

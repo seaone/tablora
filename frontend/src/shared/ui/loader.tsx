@@ -36,7 +36,7 @@ function Loader({ className, label, size = "default", ...props }: LoaderProps) {
       role="status"
       aria-live="polite"
       data-slot="loader"
-      className={cn("bg-background flex min-h-32 items-center justify-center p-4", className)}
+      className={cn("flex min-h-32 items-center justify-center p-4", className)}
       {...props}
     >
       <div className="flex flex-col items-center gap-3">

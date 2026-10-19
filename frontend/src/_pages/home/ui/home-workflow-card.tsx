@@ -15,7 +15,7 @@ function HomeWorkflowCard() {
           </div>
         </div>
 
-        <div className="grid grid-rows-[repeat(3,1fr)] gap-y-4">
+        <div className="grid grid-rows-[repeat(4,1fr)] gap-y-4">
           {/* Step 1 */}
           <div className="flex items-start gap-4 group">
             <div className="flex flex-col items-center">

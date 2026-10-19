@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Edit3, Eye, ListChecks } from "lucide-react";
+import { Edit3, Eye, Table2Icon } from "lucide-react";
 import { DeleteTable } from "@/features/delete-table";
 import type { MyTableSummary, MyTablesRoleFilter } from "@/shared/api";
 import { ACTION_LABELS } from "@/shared/config";
@@ -59,8 +59,8 @@ function MyTablesList({ tables, onDeleteTable }: Props) {
 
   if (tables.length === 0) {
     return (
-      <div className="max-w-lg mx-auto my-8 flex flex-col items-center gap-4 text-center">
-        <ListChecks className="w-10 h-10 text-muted-foreground" aria-hidden="true" />
+      <Card className="max-w-lg mx-auto my-8 flex flex-col items-center gap-4 text-center">
+        <Table2Icon className="w-10 h-10 text-muted-foreground" aria-hidden="true" />
         <div className="space-y-2">
           <h1 className="font-heading text-xl sm:text-2xl font-bold">Мои таблицы</h1>
           <p className="text-sm text-muted-foreground leading-relaxed">
@@ -70,7 +70,7 @@ function MyTablesList({ tables, onDeleteTable }: Props) {
         <Link href="/new" className={buttonVariants({ variant: "default", size: "default" })}>
           Создать таблицу
         </Link>
-      </div>
+      </Card>
     );
   }
 

@@ -1,4 +1,4 @@
-import { ExternalLink, Tv } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { ShareAccessCard } from "./share-access-card";
 
 interface Props {

@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import type { HTMLAttributes } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { cn } from "@/shared/lib";
@@ -11,7 +10,6 @@ interface QRCodeProps {
   className?: HTMLAttributes<HTMLElement>["className"];
   bgColor?: string;
   fgColor?: string;
-  includeMargin?: boolean;
 }
 
 function QRCode({

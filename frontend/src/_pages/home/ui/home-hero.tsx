@@ -1,6 +1,6 @@
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
-import { Badge, buttonVariants } from "@/shared/ui";
+import { buttonVariants } from "@/shared/ui";
 
 function HomeHero() {
   return (
