@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type HTMLAttributes } from "react";
-import { cn } from "@/shared/lib";
+import { copyText, cn } from "@/shared/lib";
 import {
   Button,
   Card,
@@ -23,8 +23,8 @@ function AudienceQrWidget({ className, spectatorUrl }: Props) {
   const inputId = useId();
   const [copiedSpectator, setCopiedSpectator] = useState(false);
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = async (text: string) => {
+    if (!(await copyText(text))) return;
     setCopiedSpectator(true);
     setTimeout(() => setCopiedSpectator(false), 2000);
   };

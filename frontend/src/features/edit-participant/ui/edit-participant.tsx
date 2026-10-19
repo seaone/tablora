@@ -1,7 +1,7 @@
 import { Pencil } from "lucide-react";
-import { useState } from "react";
 import { type ParticipantDraft, ParticipantFormDialog } from "@/entities/table";
 import type { Score, TableColumn } from "@/shared/api";
+import { useDialogSubmit } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 interface EditParticipantTarget {
@@ -20,9 +20,10 @@ interface Props {
 }
 
 function EditParticipant({ participant, columns, currentScores, onSubmit }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { isOpen, handleOpenChange, isSubmitting, error, submit } = useDialogSubmit(
+    onSubmit,
+    "Не удалось сохранить изменения",
+  );
 
   const initialValue = { name: participant.name, description: participant.description ?? "" };
 
@@ -35,30 +36,6 @@ function EditParticipant({ participant, columns, currentScores, onSubmit }: Prop
       initialScores[col.id] = entry ? entry.value : "";
     }
   }
-
-  const handleOpenChange = (open: boolean) => {
-    if (open) {
-      setError(null);
-      setIsOpen(true);
-    } else if (!isSubmitting) {
-      setIsOpen(false);
-    }
-  };
-
-  const handleSubmit = async (value: ParticipantDraft, scores?: Record<string, string>) => {
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      await onSubmit(value, scores);
-      setIsSubmitting(false);
-      setIsOpen(false);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Не удалось сохранить изменения";
-      setError(msg);
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <>
@@ -84,7 +61,7 @@ function EditParticipant({ participant, columns, currentScores, onSubmit }: Prop
         initialScores={initialScores}
         isSubmitting={isSubmitting}
         error={error}
-        onSubmit={handleSubmit}
+        onSubmit={submit}
       />
     </>
   );

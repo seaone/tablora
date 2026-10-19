@@ -1,7 +1,7 @@
 import { Columns } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
 import { type ColumnDraft, ColumnFormDialog } from "@/entities/table";
+import { useDialogSubmit } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 interface Props {
@@ -14,33 +14,10 @@ interface Props {
 }
 
 function AddColumn({ onSubmit, className }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleOpenChange = (open: boolean) => {
-    if (open) {
-      setError(null);
-      setIsOpen(true);
-    } else if (!isSubmitting) {
-      setIsOpen(false);
-    }
-  };
-
-  const handleSubmit = async (value: ColumnDraft) => {
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      await onSubmit(value);
-      setIsSubmitting(false);
-      setIsOpen(false);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Не удалось добавить столбец";
-      setError(msg);
-      setIsSubmitting(false);
-    }
-  };
+  const { isOpen, handleOpenChange, isSubmitting, error, submit } = useDialogSubmit(
+    onSubmit,
+    "Не удалось добавить столбец",
+  );
 
   return (
     <>
@@ -64,7 +41,7 @@ function AddColumn({ onSubmit, className }: Props) {
         submittingLabel="Добавление..."
         isSubmitting={isSubmitting}
         error={error}
-        onSubmit={handleSubmit}
+        onSubmit={submit}
       />
     </>
   );
