@@ -55,7 +55,13 @@ jobs:
       # Installs all workspaces and compiles @tablora/shared via its prepare script.
       - run: npm ci
 
+      - run: npx tsc --noEmit -p backend/tsconfig.json
+
       - run: npm test -w tablora-backend
+
+      - run: npm run typecheck -w tablora-frontend
+
+      - run: npm test -w tablora-frontend
 
   # Publishing only happens on main, but a missing PUBLIC_URL would silently bake
   # http://localhost:4000 into the frontend bundle, so fail before anything ships.
