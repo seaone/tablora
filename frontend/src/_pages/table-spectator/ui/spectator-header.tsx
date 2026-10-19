@@ -8,16 +8,17 @@ import { ActionTooltip, Button, Header, buttonVariants } from "@/shared/ui";
 interface Props {
   tableId: string;
   status: ConnectionStatus;
+  notFound: boolean;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
 }
 
-function SpectatorHeader({ tableId, status, isFullscreen, onToggleFullscreen }: Props) {
+function SpectatorHeader({ tableId, status, notFound, isFullscreen, onToggleFullscreen }: Props) {
   return (
     <Header
       className="z-50"
       containerClassName="max-w-7xl"
-      subtitle={<ConnectionStatusBadge status={status} />}
+      subtitle={notFound ? undefined : <ConnectionStatusBadge status={status} />}
       rightContent={
         <div className="flex items-center gap-2">
           <ActionTooltip

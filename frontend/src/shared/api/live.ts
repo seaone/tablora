@@ -8,6 +8,8 @@ export interface TableSubscriptionHandlers {
   onSnapshot: (table: FullTableData) => void;
   onConnected?: () => void;
   onDisconnected?: () => void;
+  /** The table was deleted; the stream is closed and will not reconnect. */
+  onDeleted?: () => void;
 }
 
 export function tableEventsUrl(tableId: string): string {
@@ -50,6 +52,13 @@ export function subscribeToTable(tableId: string, handlers: TableSubscriptionHan
       } catch (err) {
         console.error("Error parsing update:", err);
       }
+    });
+
+    es.addEventListener(SSE_EVENTS.tableDeleted, () => {
+      if (closed) return;
+      closed = true;
+      handlers.onDeleted?.();
+      es.close();
     });
 
     es.onerror = () => {

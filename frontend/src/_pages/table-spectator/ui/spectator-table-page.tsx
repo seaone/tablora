@@ -15,6 +15,7 @@ function SpectatorTablePage({ tableId }: Props) {
   const {
     table,
     status,
+    notFound,
     sortColumnId,
     sortDirection,
     handleSort,
@@ -30,13 +31,18 @@ function SpectatorTablePage({ tableId }: Props) {
       <SpectatorHeader
         tableId={tableId}
         status={status}
+        notFound={notFound}
         isFullscreen={isFullscreen}
         onToggleFullscreen={toggleFullScreen}
       />
 
       {/* Main Presentation Grid: 8 cols Standings + 4 cols QR widget */}
       <Main className="flex-1">
-        {!table && <Loader label="Загрузка таблицы..." />}
+        {notFound && (
+          <p className="py-16 text-center text-sm text-muted-foreground">Таблица не найдена</p>
+        )}
+
+        {!table && !notFound && <Loader label="Загрузка таблицы..." />}
 
         {table && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

@@ -19,7 +19,7 @@ interface Props {
 }
 
 function ShareJudgesCard({ tableId }: Props) {
-  const { judges, loading, addJudge, removeJudge } = useTableJudges(tableId, true);
+  const { judges, loading, loadError, addJudge, removeJudge } = useTableJudges(tableId);
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,10 +64,12 @@ function ShareJudgesCard({ tableId }: Props) {
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
+        {loadError && <p className="text-sm text-destructive">Не удалось загрузить судей.</p>}
+
         {loading ? (
           <Loader label="Загрузка судей..." />
         ) : judges.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Пока нет добавленных судей.</p>
+          !loadError && <p className="text-sm text-muted-foreground">Пока нет добавленных судей.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {judges.map((judge) => (
@@ -80,7 +82,10 @@ function ShareJudgesCard({ tableId }: Props) {
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  onClick={() => void removeJudge(judge.id)}
+                  onClick={() => {
+                    setError(null);
+                    void removeJudge(judge.id).catch(() => setError("Не удалось удалить судью."));
+                  }}
                   title="Удалить судью"
                 >
                   <Trash2 className="w-4 h-4 text-destructive" aria-hidden="true" />

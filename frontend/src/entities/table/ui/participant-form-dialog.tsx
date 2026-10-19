@@ -54,6 +54,7 @@ function ParticipantFormDialog({
   const [name, setName] = useState(initialValue.name);
   const [descriptionValue, setDescriptionValue] = useState(initialValue.description);
   const [scores, setScores] = useState<Record<string, string>>(initialScores ?? {});
+  const [dirtyScores, setDirtyScores] = useState<Set<string>>(new Set());
   const [nameSubmitted, setNameSubmitted] = useState(false);
 
   const prevOpenRef = useRef(open);
@@ -62,6 +63,7 @@ function ParticipantFormDialog({
       setName(initialValue.name);
       setDescriptionValue(initialValue.description);
       setScores(initialScores ?? {});
+      setDirtyScores(new Set());
       setNameSubmitted(false);
     }
     prevOpenRef.current = open;
@@ -80,6 +82,7 @@ function ParticipantFormDialog({
 
   const handleScoreChange = (columnId: string, value: string) => {
     setScores((prev) => ({ ...prev, [columnId]: value }));
+    setDirtyScores((prev) => new Set(prev).add(columnId));
   };
 
   const handleAdjustNumber = (columnId: string, delta: number) => {
@@ -103,7 +106,17 @@ function ParticipantFormDialog({
     }
 
     const hasScores = columns && columns.length > 0;
-    onSubmit(value, hasScores ? scores : undefined);
+    if (!hasScores) {
+      onSubmit(value);
+      return;
+    }
+
+    // Send only fields the user touched, so a stale dialog cannot overwrite
+    // scores another judge entered while it was open.
+    const changedScores = initialScores
+      ? Object.fromEntries(Object.entries(scores).filter(([columnId]) => dirtyScores.has(columnId)))
+      : scores;
+    onSubmit(value, Object.keys(changedScores).length > 0 ? changedScores : undefined);
   };
 
   return (

@@ -18,7 +18,7 @@ import {
 
 export const useJudgeTable = (tableId: string) => {
   const router = useRouter();
-  const { data: table, status, refresh } = useLiveTable(tableId);
+  const { data: table, status, notFound, refresh } = useLiveTable(tableId);
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -73,6 +73,7 @@ export const useJudgeTable = (tableId: string) => {
   return {
     table,
     status,
+    notFound,
     refresh,
     searchQuery,
     setSearchQuery,

@@ -2,10 +2,10 @@
 
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import type React from "react";
-import type { HTMLAttributes } from "react";
+import { type HTMLAttributes, useMemo } from "react";
 import type { FullTableData, Participant } from "@/shared/api";
 import { cn } from "@/shared/lib";
-import { Badge, Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/shared/ui";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui";
 import type { SortDirection } from "../model/use-spectator-table";
 
 interface StandingsTableProps {
@@ -25,6 +25,14 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
   sortDirection,
   onSort,
 }) => {
+  const scoreByCell = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const score of table.scores) {
+      map.set(`${score.participantId}:${score.columnId}`, score.value);
+    }
+    return map;
+  }, [table.scores]);
+
   const renderRankBadge = (index: number) => {
     if (index === 0) {
       return (
@@ -142,10 +150,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
 
                     {/* Score Columns */}
                     {table.columns.map((col) => {
-                      const scoreItem = table.scores.find(
-                        (s) => s.participantId === participant.id && s.columnId === col.id,
-                      );
-                      const val = scoreItem ? scoreItem.value : "";
+                      const val = scoreByCell.get(`${participant.id}:${col.id}`) ?? "";
                       const isSorted = sortColumnId === col.id;
 
                       return (

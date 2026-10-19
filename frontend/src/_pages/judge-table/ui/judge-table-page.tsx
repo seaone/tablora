@@ -5,9 +5,7 @@ import { AddParticipant } from "@/features/add-participant";
 import { AccessDeniedNotice } from "@/entities/user";
 import { SignInNotice } from "@/features/account";
 import {
-  Badge,
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -30,10 +28,18 @@ interface Props {
 }
 
 function JudgeTablePage({ tableId }: Props) {
-  const { user, authLoading, loading: accessLoading, isEditor, role } = useJudgeAccess(tableId);
+  const {
+    user,
+    authLoading,
+    loading: accessLoading,
+    isEditor,
+    role,
+    error: accessError,
+  } = useJudgeAccess(tableId);
   const {
     table,
     status,
+    notFound,
     searchQuery,
     setSearchQuery,
     filteredParticipants,
@@ -52,6 +58,7 @@ function JudgeTablePage({ tableId }: Props) {
       <JudgeTableHeader
         tableId={tableId}
         status={status}
+        notFound={notFound}
         isOwner={role === "owner"}
         onDeleteTable={handleDeleteTable}
       />
@@ -60,18 +67,32 @@ function JudgeTablePage({ tableId }: Props) {
       <Main className="flex-1">
         {(authLoading || accessLoading) && <Loader label="Проверка доступа..." />}
 
-        {!(authLoading || accessLoading) && !user && (
+        {!(authLoading || accessLoading) && notFound && (
+          <p className="py-16 text-center text-sm text-muted-foreground">Таблица не найдена</p>
+        )}
+
+        {!(authLoading || accessLoading) && !notFound && !user && (
           <SignInNotice
             title="Редактирование таблицы"
             description="Войдите, чтобы вносить и изменять результаты."
           />
         )}
 
-        {user && !isEditor && <AccessDeniedNotice />}
+        {!(authLoading || accessLoading) && !notFound && user && !isEditor && accessError && (
+          <p className="py-16 text-center text-sm text-muted-foreground">
+            Не удалось проверить доступ. Обновите страницу.
+          </p>
+        )}
 
-        {isEditor && !table && <Loader label="Загрузка таблицы..." />}
+        {!(authLoading || accessLoading) && !notFound && user && !isEditor && !accessError && (
+          <AccessDeniedNotice />
+        )}
 
-        {isEditor && table && (
+        {!(authLoading || accessLoading) && !notFound && isEditor && !table && (
+          <Loader label="Загрузка таблицы..." />
+        )}
+
+        {!authLoading && !accessLoading && !notFound && isEditor && table && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <section className="lg:col-span-8 space-y-4">
               <Card>

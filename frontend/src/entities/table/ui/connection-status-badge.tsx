@@ -20,7 +20,9 @@ export const ConnectionStatusBadge: React.FC<ConnectionStatusBadgeProps> = ({ st
   return (
     <Badge variant="destructive">
       <RadioOff aria-hidden="true" />
-      <span className="sr-only sm:not-sr-only">{status === "connecting" ? "Подключение..." : "Переподключение..."}</span>
+      <span className="sr-only sm:not-sr-only">
+        {status === "connecting" ? "Подключение..." : "Переподключение..."}
+      </span>
     </Badge>
   );
 };

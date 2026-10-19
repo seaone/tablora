@@ -12,6 +12,17 @@ import type {
 
 const baseUrl = APP_CONFIG.apiUrl;
 
+/** An API response that did not succeed, with the HTTP status attached. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 /** All requests send the session cookie so authenticated calls work cross-origin. */
 const jsonHeaders = { "Content-Type": "application/json" };
 
@@ -34,7 +45,7 @@ export async function fetchTable(id: string): Promise<FullTableData> {
     credentials: "include",
   });
   if (!res.ok) {
-    throw new Error(`Failed to load table: ${res.statusText}`);
+    throw new ApiError(`Failed to load table: ${res.statusText}`, res.status);
   }
   return res.json();
 }

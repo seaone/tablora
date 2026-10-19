@@ -1,34 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLiveTable } from "@/entities/table";
+import { compareScoreValues } from "./sort";
 
 export type SortDirection = "asc" | "desc" | null;
 
-// Convert time string "mm:ss.ms" or "mm:ss" or "hh:mm:ss" to total milliseconds for accurate sorting
-export const parseTimeToMs = (timeStr: string): number => {
-  if (!timeStr) return Infinity;
-  const parts = timeStr.trim().split(":");
-  if (parts.length === 1) return Number(parts[0]) || Infinity;
-
-  if (parts.length === 2) {
-    const minutes = Number(parts[0]) || 0;
-    const seconds = Number(parts[1]) || 0;
-    return minutes * 60 + seconds;
-  }
-
-  if (parts.length === 3) {
-    const hours = Number(parts[0]) || 0;
-    const minutes = Number(parts[1]) || 0;
-    const seconds = Number(parts[2]) || 0;
-    return hours * 3600 + minutes * 60 + seconds;
-  }
-
-  return Infinity;
-};
-
 export const useSpectatorTable = (tableId: string) => {
-  const { data: table, status } = useLiveTable(tableId);
+  const { data: table, status, notFound } = useLiveTable(tableId);
   const [sortColumnId, setSortColumnId] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -55,8 +34,10 @@ export const useSpectatorTable = (tableId: string) => {
   // Handle column header sorting
   const handleSort = (columnId: string) => {
     if (sortColumnId !== columnId) {
+      const column = table?.columns.find((c) => c.id === columnId);
       setSortColumnId(columnId);
-      setSortDirection("desc");
+      // Lower is better for times, higher is better for points.
+      setSortDirection(column?.type === "time" ? "asc" : "desc");
     } else if (sortDirection === "desc") {
       setSortDirection("asc");
     } else {
@@ -78,33 +59,22 @@ export const useSpectatorTable = (tableId: string) => {
     const targetColumn = table.columns.find((c) => c.id === sortColumnId);
     if (!targetColumn) return list;
 
-    return list.sort((pA, pB) => {
-      const scoreA =
-        table.scores.find((s) => s.participantId === pA.id && s.columnId === sortColumnId)?.value ||
-        "";
-      const scoreB =
-        table.scores.find((s) => s.participantId === pB.id && s.columnId === sortColumnId)?.value ||
-        "";
+    const scores = new Map<string, string>();
+    for (const score of table.scores) {
+      scores.set(`${score.participantId}:${score.columnId}`, score.value);
+    }
+    const valueFor = (participantId: string) =>
+      scores.get(`${participantId}:${sortColumnId}`) ?? "";
 
-      if (targetColumn.type === "number") {
-        const valA = scoreA === "" ? -Infinity : Number(scoreA);
-        const valB = scoreB === "" ? -Infinity : Number(scoreB);
-        return sortDirection === "asc" ? valA - valB : valB - valA;
-      }
-
-      if (targetColumn.type === "time") {
-        const timeA = parseTimeToMs(scoreA);
-        const timeB = parseTimeToMs(scoreB);
-        return sortDirection === "asc" ? timeA - timeB : timeB - timeA;
-      }
-
-      return sortDirection === "asc" ? scoreA.localeCompare(scoreB) : scoreB.localeCompare(scoreA);
-    });
+    return list.sort((pA, pB) =>
+      compareScoreValues(targetColumn.type, sortDirection, valueFor(pA.id), valueFor(pB.id)),
+    );
   }, [table, sortColumnId, sortDirection]);
 
   return {
     table,
     status,
+    notFound,
     sortColumnId,
     sortDirection,
     handleSort,

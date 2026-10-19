@@ -21,8 +21,11 @@ export function signInUrl(provider: AuthProvider, returnTo?: string): string {
 }
 
 export async function signOut(): Promise<void> {
-  await fetch(`${APP_CONFIG.apiUrl}/api/auth/logout`, {
+  const res = await fetch(`${APP_CONFIG.apiUrl}/api/auth/logout`, {
     method: "POST",
     credentials: "include",
   });
+  if (!res.ok) {
+    throw new Error(`Failed to sign out: ${res.statusText}`);
+  }
 }

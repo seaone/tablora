@@ -28,6 +28,9 @@ function ShareTablePage({ tableId }: Props) {
     table,
     role,
     loading,
+    notFound,
+    error,
+    accessError,
     copiedJudge,
     copiedSpectator,
     judgeUrl,
@@ -44,7 +47,13 @@ function ShareTablePage({ tableId }: Props) {
       <Main className="flex-1">
         {loading && <Loader label="Загрузка данных..." />}
 
-        {!loading && (
+        {!loading && (notFound || error) && (
+          <p className="py-16 text-center text-sm text-muted-foreground">
+            {notFound ? "Таблица не найдена" : "Не удалось загрузить таблицу"}
+          </p>
+        )}
+
+        {!loading && !notFound && !error && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Confirmation & Access Cards (7 cols) */}
             <div className="lg:col-span-7 flex flex-col gap-6">
@@ -90,6 +99,12 @@ function ShareTablePage({ tableId }: Props) {
               </Card>
 
               {role === "owner" && <ShareJudgesCard tableId={tableId} />}
+
+              {accessError && (
+                <p className="text-sm text-destructive">
+                  Не удалось проверить права доступа. Обновите страницу.
+                </p>
+              )}
             </div>
 
             {/* Right Column: Live Table Preview (5 cols) matching Stitch */}

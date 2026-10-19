@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Footer, Main, Page } from "@/shared/ui";
+import { AuthErrorNotice } from "./auth-error-notice";
 import { HomeHeader } from "./home-header";
 import { HomeHero } from "./home-hero";
 import { HomeWorkflowCard } from "./home-workflow-card";
@@ -14,6 +15,7 @@ function HomePage() {
 
       {/* Hero Section */}
       <Main>
+        <AuthErrorNotice />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Hero Column */}
           <HomeHero />

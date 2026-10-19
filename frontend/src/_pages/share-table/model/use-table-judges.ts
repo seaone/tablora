@@ -8,20 +8,23 @@ import {
   type TableJudge,
 } from "@/shared/api";
 
-/** Manages a table's authorized judges. Only runs when `enabled` (i.e. the caller is the owner). */
-export function useTableJudges(tableId: string, enabled: boolean) {
+/** Manages a table's authorized judges. Mounted only for the table's owner. */
+export function useTableJudges(tableId: string) {
   const [judges, setJudges] = useState<TableJudge[]>([]);
-  const [loading, setLoading] = useState(enabled);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const reload = useCallback(async () => {
-    if (!enabled) return;
     setLoading(true);
+    setLoadError(false);
     try {
       setJudges(await fetchJudges(tableId));
+    } catch {
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
-  }, [tableId, enabled]);
+  }, [tableId]);
 
   useEffect(() => {
     void reload();
@@ -43,5 +46,5 @@ export function useTableJudges(tableId: string, enabled: boolean) {
     [tableId, reload],
   );
 
-  return { judges, loading, addJudge, removeJudge };
+  return { judges, loading, loadError, addJudge, removeJudge };
 }

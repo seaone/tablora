@@ -7,7 +7,6 @@ import { fetchCurrentUser, signOut as apiSignOut } from "@/shared/api";
 interface AuthState {
   user: AuthUser | null;
   loading: boolean;
-  refresh: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -20,9 +19,13 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = React.useCallback(async () => {
     setLoading(true);
-    const current = await fetchCurrentUser();
-    setUser(current);
-    setLoading(false);
+    try {
+      setUser(await fetchCurrentUser());
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -30,14 +33,15 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const signOut = React.useCallback(async () => {
-    await apiSignOut();
-    setUser(null);
+    try {
+      await apiSignOut();
+      setUser(null);
+    } catch {
+      // The server could not end the session; keep the user signed in.
+    }
   }, []);
 
-  const value = React.useMemo(
-    () => ({ user, loading, refresh, signOut }),
-    [user, loading, refresh, signOut],
-  );
+  const value = React.useMemo(() => ({ user, loading, signOut }), [user, loading, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

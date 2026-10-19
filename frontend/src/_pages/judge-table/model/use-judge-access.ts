@@ -13,16 +13,19 @@ export function useJudgeAccess(tableId: string) {
   const { user, loading: authLoading } = useAuth();
   const [role, setRole] = useState<TableAccessRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setRole(null);
+    setError(false);
     fetchTableAccess(tableId)
       .then((value) => {
         if (active) setRole(value);
       })
       .catch(() => {
-        if (active) setRole(null);
+        if (active) setError(true);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -37,6 +40,7 @@ export function useJudgeAccess(tableId: string) {
     authLoading,
     role,
     loading,
+    error,
     isEditor: role === "owner" || role === "judge",
   };
 }

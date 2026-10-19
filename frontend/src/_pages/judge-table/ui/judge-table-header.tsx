@@ -9,17 +9,18 @@ import { ActionTooltip, Header, buttonVariants } from "@/shared/ui";
 interface Props {
   tableId: string;
   status: ConnectionStatus;
+  notFound: boolean;
   /** Only the owner may delete the table (score-editing spec). */
   isOwner: boolean;
   onDeleteTable: () => void | Promise<void>;
 }
 
-function JudgeTableHeader({ tableId, status, isOwner, onDeleteTable }: Props) {
+function JudgeTableHeader({ tableId, status, notFound, isOwner, onDeleteTable }: Props) {
   return (
     <Header
       className="z-50"
       containerClassName="max-w-7xl"
-      subtitle={<ConnectionStatusBadge status={status} />}
+      subtitle={notFound ? undefined : <ConnectionStatusBadge status={status} />}
       rightContent={
         <>
           {isOwner && <DeleteTable onConfirm={onDeleteTable} size="icon" />}
