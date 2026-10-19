@@ -50,8 +50,8 @@ Rules:
 - Authentication: Yandex ID via `@fastify/oauth2`, with a `@fastify/jwt` session cookie. Auth routes live under `/api/auth` (`/yandex`, `/yandex/callback`, `/me`, `/logout`). Table mutations require the table owner or an authorized judge; reads and the SSE stream stay public (see the `authentication` and `judge-authorization` specs).
 - Config: `FRONTEND_URL`, `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_REDIRECT_URI`, `AUTH_JWT_SECRET` (see `backend/.env.example`).
 - Real-time via Server-Sent Events at `GET /api/tables/:id/events`.
-- Scripts: `npm run dev` (tsx watch), `npm run db:generate|db:push|db:migrate` (drizzle-kit), `npm test`.
-- Schema bootstrap lives in `src/db/ensureTablesExist()`. postgres.js sends every tagged query as a single prepared statement, so **never put two SQL commands in one `sql` template literal** — Postgres rejects it with `cannot insert multiple commands into a prepared statement`, and the caller only logs a warning, so a partial schema fails silently at runtime. Each statement needs its own `sql` call.
+- Scripts: `npm run dev` (tsx watch), `npm test`.
+- Schema bootstrap lives in `src/db/index.ts` (`ensureTablesExist()`); `server.ts` exits if it fails. postgres.js sends every tagged query as a single prepared statement, so **never put two SQL commands in one `sql` template literal** — Postgres rejects it with `cannot insert multiple commands into a prepared statement`. Each statement needs its own `sql` call.
 
 ## Frontend
 

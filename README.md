@@ -53,7 +53,7 @@ npm run dev -w tablora-frontend    # UI на http://localhost:3000
 
 Для входа через Яндекс ID скопируйте `backend/.env.example` в `backend/.env` и заполните `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET` и `AUTH_JWT_SECRET`. Redirect URI должен указывать на `http://localhost:4000/api/auth/yandex/callback` и совпадать с настройками приложения в Яндексе.
 
-При старте backend сам создаёт таблицы в БД, поэтому применять миграции не обязательно.
+При старте backend сам создаёт таблицы в БД.
 
 ### Изменения в `@tablora/shared`
 
@@ -71,8 +71,6 @@ npm run dev:shared
 | `npm run build:shared` | Собрать `@tablora/shared` |
 | `npm run dev:shared` | Watch-сборка `@tablora/shared` |
 | `npm test -w tablora-backend` | Тесты backend |
-| `npm run db:push -w tablora-backend` | Синхронизировать схему БД (dev) |
-| `npm run db:migrate -w tablora-backend` | Применить миграции Drizzle |
 
 В скриптах `-w` ссылается на **имя npm-пакета** (`tablora-backend` / `tablora-frontend`), а не на путь каталога.
 
@@ -133,7 +131,7 @@ Open http://localhost:3000. The frontend talks to the API at `NEXT_PUBLIC_API_UR
 
 For sign-in, copy `backend/.env.example` to `backend/.env` and fill in `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, and `AUTH_JWT_SECRET`. The redirect URI must be `http://localhost:4000/api/auth/yandex/callback` and must match the Yandex app registration.
 
-On startup the backend creates the database tables itself, so applying migrations is optional.
+On startup the backend creates the database tables itself.
 
 ### Changes to `@tablora/shared`
 
@@ -151,7 +149,5 @@ npm run dev:shared
 | `npm run build:shared` | Build `@tablora/shared` |
 | `npm run dev:shared` | Watch-build `@tablora/shared` |
 | `npm test -w tablora-backend` | Backend tests |
-| `npm run db:push -w tablora-backend` | Sync the DB schema (dev) |
-| `npm run db:migrate -w tablora-backend` | Apply Drizzle migrations |
 
 In scripts, `-w` refers to the **npm package name** (`tablora-backend` / `tablora-frontend`), not the directory path.
