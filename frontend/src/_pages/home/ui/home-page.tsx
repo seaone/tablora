@@ -5,6 +5,7 @@ import { Footer, Main, Page } from "@/shared/ui";
 import { AuthErrorNotice } from "./auth-error-notice";
 import { HomeHeader } from "./home-header";
 import { HomeHero } from "./home-hero";
+import { HomeInstructions } from "./home-instructions";
 import { HomeWorkflowCard } from "./home-workflow-card";
 
 function HomePage() {
@@ -23,6 +24,9 @@ function HomePage() {
           {/* Right Hero Column: Interactive Card */}
           <HomeWorkflowCard />
         </div>
+
+        {/* Instructions */}
+        <HomeInstructions className="mt-20" />
       </Main>
 
       {/* Footer */}
